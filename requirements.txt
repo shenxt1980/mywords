@@ -1,0 +1,22 @@
+# 陌生单词收集与背诵软件 - 依赖包列表
+# 安装命令: pip install -r requirements.txt
+
+# Flet - 跨平台Web UI框架（核心依赖）
+flet>=0.21.0
+
+# EasyOCR - OCR文字识别（用于图片识别）
+# 注意: EasyOCR依赖较多，首次安装可能需要较长时间
+easyocr>=1.7.0
+
+# ReportLab - PDF生成
+reportlab>=4.0.0
+
+# Pillow - 图像处理（EasyOCR和PDF生成都需要）
+Pillow>=10.0.0
+
+# NumPy - 数值计算（EasyOCR依赖）
+numpy>=1.24.0
+
+# Torch - 深度学习框架（EasyOCR依赖）
+# 如果只需要CPU版本，可以使用 torch-cpu
+torch>=2.0.0

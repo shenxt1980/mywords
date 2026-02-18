@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+ENV/
+env/
+
+# 数据库文件（可选，如果想在版本控制中保留数据库则注释掉）
+# vocabulary.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 临时文件
+~$*
+*.tmp
+*.temp
+
+# OCR模型缓存
+.EasyOCR/
+
+# 输出文件
+output/*.pdf
+
+# 上传文件
+uploads/*
+
+# 系统文件
+.DS_Store
+Thumbs.db
