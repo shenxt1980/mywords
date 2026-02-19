@@ -67,13 +67,13 @@ class InputPage:
             "单词采集",
             size=24,
             weight=ft.FontWeight.BOLD,
-            color=ft.colors.BLUE_700
+            color=ft.Colors.BLUE_700
         )
         
         description = ft.Text(
             "粘贴文本、粘贴截图或上传图片来采集陌生单词",
             size=14,
-            color=ft.colors.GREY_600
+            color=ft.Colors.GREY_600
         )
         
         self.text_input = ft.TextField(
@@ -82,42 +82,42 @@ class InputPage:
             min_lines=5,
             max_lines=10,
             hint_text="在此粘贴阅读理解文章，或直接Ctrl+V粘贴截图...",
-            border_color=ft.colors.BLUE_400,
-            focused_border_color=ft.colors.BLUE_700,
+            border_color=ft.Colors.BLUE_400,
+            focused_border_color=ft.Colors.BLUE_700,
             on_change=self._on_text_change,
         )
         
-        self.status_text = ft.Text("", size=14, color=ft.colors.GREEN_700)
+        self.status_text = ft.Text("", size=14, color=ft.Colors.GREEN_700)
         
         buttons_row = ft.Row(
             controls=[
                 ft.ElevatedButton(
                     "提取单词",
-                    icon=ft.icons.TEXT_FIELDS,
+                    icon=ft.Icons.TEXT_FIELDS,
                     on_click=self._on_extract_from_text,
-                    bgcolor=ft.colors.BLUE_600,
-                    color=ft.colors.WHITE,
+                    bgcolor=ft.Colors.BLUE_600,
+                    color=ft.Colors.WHITE,
                 ),
                 ft.ElevatedButton(
                     "粘贴截图",
-                    icon=ft.icons.CONTENT_PASTE,
+                    icon=ft.Icons.CONTENT_PASTE,
                     on_click=self._on_paste_clipboard,
-                    bgcolor=ft.colors.TEAL_600,
-                    color=ft.colors.WHITE,
+                    bgcolor=ft.Colors.TEAL_600,
+                    color=ft.Colors.WHITE,
                 ),
                 ft.ElevatedButton(
                     "上传图片",
-                    icon=ft.icons.IMAGE,
+                    icon=ft.Icons.IMAGE,
                     on_click=self._on_upload_image,
-                    bgcolor=ft.colors.GREEN_600,
-                    color=ft.colors.WHITE,
+                    bgcolor=ft.Colors.GREEN_600,
+                    color=ft.Colors.WHITE,
                 ),
                 ft.ElevatedButton(
                     "清除",
-                    icon=ft.icons.CLEAR,
+                    icon=ft.Icons.CLEAR,
                     on_click=self._on_clear,
-                    bgcolor=ft.colors.GREY_400,
-                    color=ft.colors.WHITE,
+                    bgcolor=ft.Colors.GREY_400,
+                    color=ft.Colors.WHITE,
                 ),
             ],
             alignment=ft.MainAxisAlignment.CENTER,
@@ -131,10 +131,10 @@ class InputPage:
         )
         if self.ocr_available:
             self.ocr_status_text.value = "[OK] 图片OCR功能已就绪"
-            self.ocr_status_text.color = ft.colors.GREEN_600
+            self.ocr_status_text.color = ft.Colors.GREEN_600
         else:
             self.ocr_status_text.value = "[提示] 图片OCR不可用，文本提取功能正常。如需图片识别请安装: pip install easyocr"
-            self.ocr_status_text.color = ft.colors.GREY_600
+            self.ocr_status_text.color = ft.Colors.GREY_600
         
         self.word_container = ft.Column(
             controls=[],
@@ -150,25 +150,25 @@ class InputPage:
                     self.word_container,
                 ]
             ),
-            bgcolor=ft.colors.GREY_50,
+            bgcolor=ft.Colors.GREY_50,
             padding=10,
             border_radius=10,
-            border=ft.border.all(1, ft.colors.GREY_300),
+            border=ft.border.all(1, ft.Colors.GREY_300),
         )
         
         self.selected_count_text = ft.Text(
             "已选中: 0 个单词",
             size=14,
-            color=ft.colors.BLUE_700,
+            color=ft.Colors.BLUE_700,
             weight=ft.FontWeight.BOLD,
         )
         
         submit_button = ft.ElevatedButton(
             "提交选中单词",
-            icon=ft.icons.SAVE,
+            icon=ft.Icons.SAVE,
             on_click=self._on_submit,
-            bgcolor=ft.colors.PURPLE_600,
-            color=ft.colors.WHITE,
+            bgcolor=ft.Colors.PURPLE_600,
+            color=ft.Colors.WHITE,
             width=180,
             height=45,
         )
@@ -177,12 +177,12 @@ class InputPage:
             controls=[
                 ft.TextButton(
                     "全选",
-                    icon=ft.icons.SELECT_ALL,
+                    icon=ft.Icons.SELECT_ALL,
                     on_click=self._on_select_all,
                 ),
                 ft.TextButton(
                     "取消全选",
-                    icon=ft.icons.DESELECT,
+                    icon=ft.Icons.DESELECT,
                     on_click=self._on_deselect_all,
                 ),
             ],
@@ -226,7 +226,7 @@ class InputPage:
             text = self.text_input.value
             if not text or not text.strip():
                 self.status_text.value = "[!] 请先输入或粘贴文本"
-                self.status_text.color = ft.colors.RED_500
+                self.status_text.color = ft.Colors.RED_500
                 self.page.update()
                 return
             
@@ -234,7 +234,7 @@ class InputPage:
             
             if not self.extracted_words:
                 self.status_text.value = "[!] 未在文本中找到英文单词"
-                self.status_text.color = ft.colors.ORANGE_600
+                self.status_text.color = ft.Colors.ORANGE_600
                 self.page.update()
                 return
             
@@ -242,18 +242,18 @@ class InputPage:
             self._display_words()
             
             self.status_text.value = f"[OK] 已提取 {len(self.extracted_words)} 个单词"
-            self.status_text.color = ft.colors.GREEN_600
+            self.status_text.color = ft.Colors.GREEN_600
             self.page.update()
             
         except Exception as ex:
             self.status_text.value = f"[错误] {str(ex)}"
-            self.status_text.color = ft.colors.RED_500
+            self.status_text.color = ft.Colors.RED_500
             self.page.update()
     
     def _on_paste_clipboard(self, e):
         """粘贴剪贴板内容"""
         self.status_text.value = "[...] 正在读取剪贴板..."
-        self.status_text.color = ft.colors.BLUE_600
+        self.status_text.color = ft.Colors.BLUE_600
         self.page.update()
         
         try:
@@ -263,17 +263,17 @@ class InputPage:
             if clipboard_text and clipboard_text.strip():
                 self.text_input.value = clipboard_text
                 self.status_text.value = "[OK] 已粘贴文本，请点击\"提取单词\""
-                self.status_text.color = ft.colors.GREEN_600
+                self.status_text.color = ft.Colors.GREEN_600
             else:
                 self.status_text.value = "[!] 剪贴板中没有文本内容"
-                self.status_text.color = ft.colors.ORANGE_600
+                self.status_text.color = ft.Colors.ORANGE_600
             
         except ImportError:
             self.status_text.value = "[提示] 请直接在文本框中按 Ctrl+V 粘贴"
-            self.status_text.color = ft.colors.BLUE_600
+            self.status_text.color = ft.Colors.BLUE_600
         except Exception as ex:
             self.status_text.value = f"[错误] {str(ex)}"
-            self.status_text.color = ft.colors.RED_500
+            self.status_text.color = ft.Colors.RED_500
         
         self.page.update()
     
@@ -281,7 +281,7 @@ class InputPage:
         """上传图片并识别"""
         if not self.ocr_available or not self.ocr_handler:
             self.status_text.value = "[!] 图片OCR功能不可用，请安装 easyocr"
-            self.status_text.color = ft.colors.RED_500
+            self.status_text.color = ft.Colors.RED_500
             self.page.update()
             return
         
@@ -303,14 +303,14 @@ class InputPage:
         file_path = file.path
         
         self.status_text.value = "[...] 正在识别图片，请稍候..."
-        self.status_text.color = ft.colors.BLUE_600
+        self.status_text.color = ft.Colors.BLUE_600
         self.page.update()
         
         success, result = self.ocr_handler.recognize_image(file_path)
         
         if not success:
             self.status_text.value = f"[错误] {result}"
-            self.status_text.color = ft.colors.RED_500
+            self.status_text.color = ft.Colors.RED_500
             self.page.update()
             return
         
@@ -321,7 +321,7 @@ class InputPage:
         
         if not self.extracted_words:
             self.status_text.value = "[!] 图片中未识别到英文单词"
-            self.status_text.color = ft.colors.ORANGE_600
+            self.status_text.color = ft.Colors.ORANGE_600
             self.page.update()
             return
         
@@ -329,7 +329,7 @@ class InputPage:
         self._display_words()
         
         self.status_text.value = f"[OK] 识别成功，提取了 {len(self.extracted_words)} 个单词"
-        self.status_text.color = ft.colors.GREEN_600
+        self.status_text.color = ft.Colors.GREEN_600
         self.page.update()
     
     def _display_words(self):
@@ -341,8 +341,8 @@ class InputPage:
         for word in self.extracted_words:
             chip = ft.Chip(
                 label=ft.Text(word, size=12),
-                bgcolor=ft.colors.BLUE_50,
-                selected_color=ft.colors.BLUE_300,
+                bgcolor=ft.Colors.BLUE_50,
+                selected_color=ft.Colors.BLUE_300,
                 on_click=lambda e, w=word: self._on_word_click(e, w),
                 show_checkmark=True,
             )
@@ -365,11 +365,11 @@ class InputPage:
         if word in self.selected_words:
             self.selected_words.discard(word)
             chip.selected = False
-            chip.bgcolor = ft.colors.BLUE_50
+            chip.bgcolor = ft.Colors.BLUE_50
         else:
             self.selected_words.add(word)
             chip.selected = True
-            chip.bgcolor = ft.colors.BLUE_300
+            chip.bgcolor = ft.Colors.BLUE_300
         
         self._update_selected_count()
         self.page.update()
@@ -393,8 +393,8 @@ class InputPage:
             is_selected = word in self.selected_words
             chip = ft.Chip(
                 label=ft.Text(word, size=12),
-                bgcolor=ft.colors.BLUE_300 if is_selected else ft.colors.BLUE_50,
-                selected_color=ft.colors.BLUE_300,
+                bgcolor=ft.Colors.BLUE_300 if is_selected else ft.Colors.BLUE_50,
+                selected_color=ft.Colors.BLUE_300,
                 selected=is_selected,
                 on_click=lambda e, w=word: self._on_word_click(e, w),
                 show_checkmark=True,
@@ -420,7 +420,7 @@ class InputPage:
         """提交选中的单词"""
         if not self.selected_words:
             self.status_text.value = "[!] 请先选择要添加的单词"
-            self.status_text.color = ft.colors.ORANGE_600
+            self.status_text.color = ft.Colors.ORANGE_600
             self.page.update()
             return
         
@@ -428,7 +428,7 @@ class InputPage:
         new_count, update_count = db.batch_add_words(words_list)
         
         self.status_text.value = f"[OK] 成功添加 {new_count} 个新单词，更新 {update_count} 个已有单词"
-        self.status_text.color = ft.colors.GREEN_600
+        self.status_text.color = ft.Colors.GREEN_600
         
         self.selected_words.clear()
         self._refresh_word_display()

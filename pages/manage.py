@@ -49,23 +49,23 @@ class ManagePage:
             "单词管理",
             size=24,
             weight=ft.FontWeight.BOLD,
-            color=ft.colors.BLUE_700
+            color=ft.Colors.BLUE_700
         )
         
         # 搜索框
         self.search_input = ft.TextField(
             label="搜索单词",
             hint_text="输入单词或含义...",
-            prefix_icon=ft.icons.SEARCH,
+            prefix_icon=ft.Icons.SEARCH,
             on_submit=self._on_search,
-            border_color=ft.colors.BLUE_400,
+            border_color=ft.Colors.BLUE_400,
             expand=True,
         )
         
         search_button = ft.IconButton(
-            icon=ft.icons.SEARCH,
+            icon=ft.Icons.SEARCH,
             on_click=self._on_search,
-            bgcolor=ft.colors.BLUE_100,
+            bgcolor=ft.Colors.BLUE_100,
         )
         
         # 排序选择
@@ -86,31 +86,31 @@ class ManagePage:
             controls=[
                 ft.ElevatedButton(
                     "刷新",
-                    icon=ft.icons.REFRESH,
+                    icon=ft.Icons.REFRESH,
                     on_click=self._on_refresh,
-                    bgcolor=ft.colors.BLUE_600,
-                    color=ft.colors.WHITE,
+                    bgcolor=ft.Colors.BLUE_600,
+                    color=ft.Colors.WHITE,
                 ),
                 ft.ElevatedButton(
                     "全选",
-                    icon=ft.icons.SELECT_ALL,
+                    icon=ft.Icons.SELECT_ALL,
                     on_click=self._on_select_all,
-                    bgcolor=ft.colors.GREEN_600,
-                    color=ft.colors.WHITE,
+                    bgcolor=ft.Colors.GREEN_600,
+                    color=ft.Colors.WHITE,
                 ),
                 ft.ElevatedButton(
                     "取消",
-                    icon=ft.icons.DESELECT,
+                    icon=ft.Icons.DESELECT,
                     on_click=self._on_deselect_all,
-                    bgcolor=ft.colors.GREY_400,
-                    color=ft.colors.WHITE,
+                    bgcolor=ft.Colors.GREY_400,
+                    color=ft.Colors.WHITE,
                 ),
                 ft.ElevatedButton(
                     "导出PDF",
-                    icon=ft.icons.PICTURE_AS_PDF,
+                    icon=ft.Icons.PICTURE_AS_PDF,
                     on_click=self._on_export_pdf,
-                    bgcolor=ft.colors.RED_600,
-                    color=ft.colors.WHITE,
+                    bgcolor=ft.Colors.RED_600,
+                    color=ft.Colors.WHITE,
                 ),
             ],
             alignment=ft.MainAxisAlignment.START,
@@ -118,7 +118,7 @@ class ManagePage:
         )
         
         # 统计信息
-        self.stats_text = ft.Text("", size=14, color=ft.colors.GREY_700)
+        self.stats_text = ft.Text("", size=14, color=ft.Colors.GREY_700)
         
         # 单词列表
         self.word_list = ft.Column(
@@ -176,7 +176,7 @@ class ManagePage:
                     content=ft.Text(
                         "暂无单词，请先添加单词",
                         size=16,
-                        color=ft.colors.GREY_500,
+                        color=ft.Colors.GREY_500,
                         text_align=ft.TextAlign.CENTER,
                     ),
                     alignment=ft.alignment.center,
@@ -219,19 +219,19 @@ class ManagePage:
                     word,
                     size=18,
                     weight=ft.FontWeight.BOLD,
-                    color=ft.colors.BLUE_800,
+                    color=ft.Colors.BLUE_800,
                 ),
                 ft.Text(
                     phonetic,
                     size=14,
-                    color=ft.colors.GREY_600,
+                    color=ft.Colors.GREY_600,
                     italic=True,
                 ) if phonetic else ft.Container(),
                 ft.Text(
                     part_of_speech,
                     size=12,
-                    color=ft.colors.GREEN_700,
-                    bgcolor=ft.colors.GREEN_50,
+                    color=ft.Colors.GREEN_700,
+                    bgcolor=ft.Colors.GREEN_50,
                 ) if part_of_speech else ft.Container(),
             ],
             alignment=ft.MainAxisAlignment.START,
@@ -245,7 +245,7 @@ class ManagePage:
                     content=ft.Text(
                         meaning,
                         size=14,
-                        color=ft.colors.BLACK87,
+                        color=ft.Colors.BLACK87,
                     ),
                     padding=ft.padding.only(left=40),
                     expand=True,
@@ -260,19 +260,19 @@ class ManagePage:
                     content=ft.Text(
                         f"被选: {selection_count}次",
                         size=11,
-                        color=ft.colors.BLUE_600,
+                        color=ft.Colors.BLUE_600,
                     ),
                     padding=ft.padding.only(left=40),
                 ),
                 ft.Text(
                     f"打印: {print_count}次",
                     size=11,
-                    color=ft.colors.GREEN_600,
+                    color=ft.Colors.GREEN_600,
                 ),
                 ft.Text(
                     f"背诵: {recitation_count}次",
                     size=11,
-                    color=ft.colors.PURPLE_600,
+                    color=ft.Colors.PURPLE_600,
                 ),
             ]
         )
@@ -282,17 +282,17 @@ class ManagePage:
             controls=[
                 ft.TextButton(
                     "编辑",
-                    icon=ft.icons.EDIT,
+                    icon=ft.Icons.EDIT,
                     on_click=lambda e, wi=word_info: self._on_edit_word(wi),
                 ),
                 ft.TextButton(
                     "查词典",
-                    icon=ft.icons.DICTIONARY,
+                    icon=ft.Icons.DICTIONARY,
                     on_click=lambda e, wi=word_info: self._on_lookup_word(wi),
                 ),
                 ft.TextButton(
                     "删除",
-                    icon=ft.icons.DELETE,
+                    icon=ft.Icons.DELETE,
                     on_click=lambda e, wid=word_id: self._on_delete_word(wid),
                 ),
             ],
@@ -310,8 +310,8 @@ class ManagePage:
                     action_row,
                 ]
             ),
-            bgcolor=ft.colors.BLUE_50 if is_selected else ft.colors.WHITE,
-            border=ft.border.all(1, ft.colors.BLUE_200 if is_selected else ft.colors.GREY_300),
+            bgcolor=ft.Colors.BLUE_50 if is_selected else ft.Colors.WHITE,
+            border=ft.border.all(1, ft.Colors.BLUE_200 if is_selected else ft.Colors.GREY_300),
             border_radius=8,
             padding=10,
             margin=ft.margin.only(bottom=5),
@@ -351,7 +351,7 @@ class ManagePage:
         self.selected_ids.clear()
         self._load_words()
         self.status_text.value = "[OK] 已刷新"
-        self.status_text.color = ft.colors.GREEN_600
+        self.status_text.color = ft.Colors.GREEN_600
         self.page.update()
     
     def _on_select_all(self, e):
@@ -359,7 +359,7 @@ class ManagePage:
         self.selected_ids = {w['id'] for w in self.all_words}
         self._display_words()
         self.status_text.value = f"[OK] 已选中 {len(self.selected_ids)} 个单词"
-        self.status_text.color = ft.colors.BLUE_600
+        self.status_text.color = ft.Colors.BLUE_600
         self.page.update()
     
     def _on_deselect_all(self, e):
@@ -367,7 +367,7 @@ class ManagePage:
         self.selected_ids.clear()
         self._display_words()
         self.status_text.value = "[OK] 已取消选择"
-        self.status_text.color = ft.colors.GREY_600
+        self.status_text.color = ft.Colors.GREY_600
         self.page.update()
     
     def _on_export_pdf(self, e):
@@ -380,7 +380,7 @@ class ManagePage:
         
         if not words_to_export:
             self.status_text.value = "[!] 没有可导出的单词"
-            self.status_text.color = ft.colors.ORANGE_600
+            self.status_text.color = ft.Colors.ORANGE_600
             self.page.update()
             return
         
@@ -397,13 +397,13 @@ class ManagePage:
             db.increment_print_count(word_ids)
             
             self.status_text.value = f"[OK] {message}"
-            self.status_text.color = ft.colors.GREEN_600
+            self.status_text.color = ft.Colors.GREEN_600
             
             # 刷新列表
             self._load_words(self.search_input.value or "")
         else:
             self.status_text.value = f"[X] {message}"
-            self.status_text.color = ft.colors.RED_500
+            self.status_text.color = ft.Colors.RED_500
         
         self.page.update()
     
@@ -432,7 +432,7 @@ class ManagePage:
             self.page.update()
             self._load_words(self.search_input.value or "")
             self.status_text.value = "[OK] 已保存修改"
-            self.status_text.color = ft.colors.GREEN_600
+            self.status_text.color = ft.Colors.GREEN_600
             self.page.update()
         
         def on_cancel(e):
@@ -456,7 +456,7 @@ class ManagePage:
             ),
             actions=[
                 ft.TextButton("取消", on_click=on_cancel),
-                ft.ElevatedButton("保存", on_click=on_save, bgcolor=ft.colors.BLUE_600, color=ft.colors.WHITE),
+                ft.ElevatedButton("保存", on_click=on_save, bgcolor=ft.Colors.BLUE_600, color=ft.Colors.WHITE),
             ],
             actions_alignment=ft.MainAxisAlignment.END,
         )
@@ -470,7 +470,7 @@ class ManagePage:
         word = word_info.get('word', '')
         
         self.status_text.value = f"[...] 正在查询 '{word}' 的释义..."
-        self.status_text.color = ft.colors.BLUE_600
+        self.status_text.color = ft.Colors.BLUE_600
         self.page.update()
         
         # 调用词典API
@@ -487,10 +487,10 @@ class ManagePage:
             )
             self._load_words(self.search_input.value or "")
             self.status_text.value = f"[OK] 已更新 '{word}' 的释义"
-            self.status_text.color = ft.colors.GREEN_600
+            self.status_text.color = ft.Colors.GREEN_600
         else:
             self.status_text.value = f"[!] 未能找到 '{word}' 的释义"
-            self.status_text.color = ft.colors.ORANGE_600
+            self.status_text.color = ft.Colors.ORANGE_600
         
         self.page.update()
     
@@ -505,7 +505,7 @@ class ManagePage:
             self.confirm_dialog.open = False
             self._load_words(self.search_input.value or "")
             self.status_text.value = f"[OK] 已删除 '{word}'"
-            self.status_text.color = ft.colors.GREEN_600
+            self.status_text.color = ft.Colors.GREEN_600
             self.page.update()
         
         def on_cancel(e):
@@ -521,8 +521,8 @@ class ManagePage:
                 ft.ElevatedButton(
                     "删除",
                     on_click=on_confirm,
-                    bgcolor=ft.colors.RED_600,
-                    color=ft.colors.WHITE,
+                    bgcolor=ft.Colors.RED_600,
+                    color=ft.Colors.WHITE,
                 ),
             ],
             actions_alignment=ft.MainAxisAlignment.END,

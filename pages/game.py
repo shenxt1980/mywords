@@ -51,14 +51,14 @@ class GamePage:
             "单词连连看",
             size=24,
             weight=ft.FontWeight.BOLD,
-            color=ft.colors.PINK_700
+            color=ft.Colors.PINK_700
         )
         
         # 说明
         description = ft.Text(
             "点击英文和对应的中文进行匹配，匹配正确则消除",
             size=14,
-            color=ft.colors.GREY_600,
+            color=ft.Colors.GREY_600,
             text_align=ft.TextAlign.CENTER,
         )
         
@@ -78,17 +78,17 @@ class GamePage:
                 ),
                 ft.ElevatedButton(
                     "开始游戏",
-                    icon=ft.icons.PLAY_ARROW,
+                    icon=ft.Icons.PLAY_ARROW,
                     on_click=self._on_start_game,
-                    bgcolor=ft.colors.GREEN_600,
-                    color=ft.colors.WHITE,
+                    bgcolor=ft.Colors.GREEN_600,
+                    color=ft.Colors.WHITE,
                 ),
                 ft.ElevatedButton(
                     "重新开始",
-                    icon=ft.icons.REFRESH,
+                    icon=ft.Icons.REFRESH,
                     on_click=self._on_restart_game,
-                    bgcolor=ft.colors.BLUE_600,
-                    color=ft.colors.WHITE,
+                    bgcolor=ft.Colors.BLUE_600,
+                    color=ft.Colors.WHITE,
                 ),
             ],
             alignment=ft.MainAxisAlignment.CENTER,
@@ -102,14 +102,14 @@ class GamePage:
             "得分: 0",
             size=18,
             weight=ft.FontWeight.BOLD,
-            color=ft.colors.PURPLE_700,
+            color=ft.Colors.PURPLE_700,
         )
         
         # 进度显示
         self.progress_text = ft.Text(
             "配对: 0 / 0",
             size=14,
-            color=ft.colors.GREY_600,
+            color=ft.Colors.GREY_600,
         )
         
         # 游戏网格
@@ -119,7 +119,7 @@ class GamePage:
                     content=ft.Text(
                         "点击「开始游戏」开始",
                         size=18,
-                        color=ft.colors.GREY_500,
+                        color=ft.Colors.GREY_500,
                         text_align=ft.TextAlign.CENTER,
                     ),
                     alignment=ft.alignment.center,
@@ -168,7 +168,7 @@ class GamePage:
         
         if len(words_with_meaning) < count:
             self.status_text.value = f"[!] 有含义的单词不足 {count} 个，请先添加单词和含义"
-            self.status_text.color = ft.colors.ORANGE_600
+            self.status_text.color = ft.Colors.ORANGE_600
             self.page.update()
             return
         
@@ -186,7 +186,7 @@ class GamePage:
         self._update_display()
         
         self.status_text.value = "[OK] 游戏开始！点击方块进行匹配"
-        self.status_text.color = ft.colors.GREEN_600
+        self.status_text.color = ft.Colors.GREEN_600
         self.page.update()
     
     def _on_restart_game(self, e):
@@ -195,7 +195,7 @@ class GamePage:
             self._on_start_game(e)
         else:
             self.status_text.value = "[!] 请先点击「开始游戏」"
-            self.status_text.color = ft.colors.ORANGE_600
+            self.status_text.color = ft.Colors.ORANGE_600
             self.page.update()
     
     def _create_game_blocks(self):
@@ -248,12 +248,12 @@ class GamePage:
                     block['text'],
                     size=12,
                     text_align=ft.TextAlign.CENTER,
-                    color=ft.colors.WHITE if block['type'] == 'english' else ft.colors.BLACK87,
+                    color=ft.Colors.WHITE if block['type'] == 'english' else ft.Colors.BLACK87,
                     no_wrap=True,
                     overflow=ft.TextOverflow.ELLIPSIS,
                 ),
                 bgcolor=self._get_block_color(block),
-                border=ft.border.all(2, ft.colors.BLUE_300 if block['selected'] else ft.colors.TRANSPARENT),
+                border=ft.border.all(2, ft.Colors.BLUE_300 if block['selected'] else ft.Colors.TRANSPARENT),
                 border_radius=8,
                 padding=10,
                 width=120,
@@ -294,13 +294,13 @@ class GamePage:
     def _get_block_color(self, block: Dict) -> str:
         """获取方块颜色"""
         if block['matched']:
-            return ft.colors.GREY_400
+            return ft.Colors.GREY_400
         if block['selected']:
-            return ft.colors.AMBER_400
+            return ft.Colors.AMBER_400
         if block['type'] == 'english':
-            return ft.colors.BLUE_500
+            return ft.Colors.BLUE_500
         else:
-            return ft.colors.GREEN_300
+            return ft.Colors.GREEN_300
     
     def _on_block_click(self, block_id: str):
         """方块点击事件"""
@@ -342,20 +342,20 @@ class GamePage:
             self.score += 10
             
             self.status_text.value = "[OK] 匹配正确！+10分"
-            self.status_text.color = ft.colors.GREEN_600
+            self.status_text.color = ft.Colors.GREEN_600
             
             # 检查游戏是否结束
             if self.matched_pairs >= self.total_pairs:
                 self.game_active = False
                 self.status_text.value = f"[★] 恭喜完成！最终得分: {self.score}"
-                self.status_text.color = ft.colors.PURPLE_600
+                self.status_text.color = ft.Colors.PURPLE_600
         else:
             # 匹配失败
             self.selected_block['selected'] = False
             self.score = max(0, self.score - 2)
             
             self.status_text.value = "[X] 匹配失败，-2分"
-            self.status_text.color = ft.colors.RED_500
+            self.status_text.color = ft.Colors.RED_500
         
         self.selected_block = None
         
@@ -376,7 +376,7 @@ class GamePage:
         if 'button' in block:
             btn = block['button']
             btn.bgcolor = self._get_block_color(block)
-            btn.border = ft.border.all(2, ft.colors.BLUE_300 if block['selected'] else ft.colors.TRANSPARENT)
+            btn.border = ft.border.all(2, ft.Colors.BLUE_300 if block['selected'] else ft.Colors.TRANSPARENT)
             self.page.update()
     
     def _update_display(self):

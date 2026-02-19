@@ -52,7 +52,7 @@ class ReviewPage:
             "背诵复习",
             size=24,
             weight=ft.FontWeight.BOLD,
-            color=ft.colors.PURPLE_700
+            color=ft.Colors.PURPLE_700
         )
         
         # 模式选择
@@ -62,24 +62,24 @@ class ReviewPage:
             controls=[
                 ft.ElevatedButton(
                     "浏览模式",
-                    icon=ft.icons.VISIBILITY,
+                    icon=ft.Icons.VISIBILITY,
                     on_click=lambda e: self._start_review("browse"),
-                    bgcolor=ft.colors.BLUE_600,
-                    color=ft.colors.WHITE,
+                    bgcolor=ft.Colors.BLUE_600,
+                    color=ft.Colors.WHITE,
                 ),
                 ft.ElevatedButton(
                     "默写（看中文写英文）",
-                    icon=ft.icons.EDIT,
+                    icon=ft.Icons.EDIT,
                     on_click=lambda e: self._start_review("dictation_en"),
-                    bgcolor=ft.colors.GREEN_600,
-                    color=ft.colors.WHITE,
+                    bgcolor=ft.Colors.GREEN_600,
+                    color=ft.Colors.WHITE,
                 ),
                 ft.ElevatedButton(
                     "默写（看英文写中文）",
-                    icon=ft.icons.EDIT_NOTE,
+                    icon=ft.Icons.EDIT_NOTE,
                     on_click=lambda e: self._start_review("dictation_cn"),
-                    bgcolor=ft.colors.ORANGE_600,
-                    color=ft.colors.WHITE,
+                    bgcolor=ft.Colors.ORANGE_600,
+                    color=ft.Colors.WHITE,
                 ),
             ],
             alignment=ft.MainAxisAlignment.CENTER,
@@ -132,7 +132,7 @@ class ReviewPage:
         self.progress_text = ft.Text(
             "",
             size=14,
-            color=ft.colors.GREY_600,
+            color=ft.Colors.GREY_600,
         )
         
         # 单词显示区域
@@ -145,7 +145,7 @@ class ReviewPage:
             ),
             alignment=ft.alignment.center,
             padding=30,
-            bgcolor=ft.colors.BLUE_50,
+            bgcolor=ft.Colors.BLUE_50,
             border_radius=15,
             width=400,
             height=100,
@@ -155,7 +155,7 @@ class ReviewPage:
         self.phonetic_display = ft.Text(
             "",
             size=16,
-            color=ft.colors.GREY_600,
+            color=ft.Colors.GREY_600,
             text_align=ft.TextAlign.CENTER,
         )
         
@@ -168,7 +168,7 @@ class ReviewPage:
             ),
             alignment=ft.alignment.center,
             padding=20,
-            bgcolor=ft.colors.GREEN_50,
+            bgcolor=ft.Colors.GREEN_50,
             border_radius=15,
             width=400,
             height=80,
@@ -195,41 +195,41 @@ class ReviewPage:
             controls=[
                 ft.ElevatedButton(
                     "显示答案",
-                    icon=ft.icons.VISIBILITY,
+                    icon=ft.Icons.VISIBILITY,
                     on_click=self._on_show_answer,
-                    bgcolor=ft.colors.AMBER_600,
-                    color=ft.colors.WHITE,
+                    bgcolor=ft.Colors.AMBER_600,
+                    color=ft.Colors.WHITE,
                     visible=True,
                 ),
                 ft.ElevatedButton(
                     "认识",
-                    icon=ft.icons.CHECK,
+                    icon=ft.Icons.CHECK,
                     on_click=lambda e: self._on_mark_result(True),
-                    bgcolor=ft.colors.GREEN_600,
-                    color=ft.colors.WHITE,
+                    bgcolor=ft.Colors.GREEN_600,
+                    color=ft.Colors.WHITE,
                     visible=False,
                 ),
                 ft.ElevatedButton(
                     "不认识",
-                    icon=ft.icons.CLOSE,
+                    icon=ft.Icons.CLOSE,
                     on_click=lambda e: self._on_mark_result(False),
-                    bgcolor=ft.colors.RED_600,
-                    color=ft.colors.WHITE,
+                    bgcolor=ft.Colors.RED_600,
+                    color=ft.Colors.WHITE,
                     visible=False,
                 ),
                 ft.ElevatedButton(
                     "下一个",
-                    icon=ft.icons.ARROW_FORWARD,
+                    icon=ft.Icons.ARROW_FORWARD,
                     on_click=self._on_next,
-                    bgcolor=ft.colors.BLUE_600,
-                    color=ft.colors.WHITE,
+                    bgcolor=ft.Colors.BLUE_600,
+                    color=ft.Colors.WHITE,
                 ),
                 ft.ElevatedButton(
                     "结束",
-                    icon=ft.icons.STOP,
+                    icon=ft.Icons.STOP,
                     on_click=self._on_end,
-                    bgcolor=ft.colors.GREY_500,
-                    color=ft.colors.WHITE,
+                    bgcolor=ft.Colors.GREY_500,
+                    color=ft.Colors.WHITE,
                 ),
             ],
             alignment=ft.MainAxisAlignment.CENTER,
@@ -312,7 +312,7 @@ class ReviewPage:
         
         if not self.review_words:
             self.status_text.value = "[!] 没有可背诵的单词，请先添加单词"
-            self.status_text.color = ft.colors.ORANGE_600
+            self.status_text.color = ft.Colors.ORANGE_600
             self.page.update()
             return
         
@@ -340,7 +340,7 @@ class ReviewPage:
             self.meaning_display.visible = False
         
         self.status_text.value = f"[OK] 开始背诵，共 {self.total_count} 个单词"
-        self.status_text.color = ft.colors.GREEN_600
+        self.status_text.color = ft.Colors.GREEN_600
         self.page.update()
     
     def _show_current_word(self):
@@ -416,11 +416,11 @@ class ReviewPage:
         
         if is_correct:
             self.result_text.value = "[OK] 正确！"
-            self.result_text.color = ft.colors.GREEN_600
+            self.result_text.color = ft.Colors.GREEN_600
             self.correct_count += 1
         else:
             self.result_text.value = f"[X] 错误！正确答案: {correct_answer}"
-            self.result_text.color = ft.colors.RED_600
+            self.result_text.color = ft.Colors.RED_600
         
         self.meaning_display.visible = True
         self.show_answer_btn.visible = False
@@ -457,7 +457,7 @@ class ReviewPage:
         self.phonetic_display.value = ""
         self.meaning_display.content.value = f"正确率: {accuracy:.1f}% ({self.correct_count}/{self.total_count})"
         self.meaning_display.visible = True
-        self.meaning_display.bgcolor = ft.colors.GREEN_100 if accuracy >= 70 else ft.colors.ORANGE_100
+        self.meaning_display.bgcolor = ft.Colors.GREEN_100 if accuracy >= 70 else ft.Colors.ORANGE_100
         
         self.answer_input.visible = False
         self.result_text.value = ""
@@ -467,7 +467,7 @@ class ReviewPage:
         self.next_btn.visible = False
         
         self.status_text.value = "[OK] 背诵完成！继续加油！"
-        self.status_text.color = ft.colors.GREEN_600
+        self.status_text.color = ft.Colors.GREEN_600
         
         self.page.update()
     
