@@ -256,7 +256,7 @@ class InputPage:
             is_selected = word in self.ocr_selected
             chip = ft.Chip(
                 label=ft.Text(word),
-                bgcolor=ft.colors.PURPLE_200 if is_selected else ft.colors.GREY_200,
+                bgcolor="purple" if is_selected else "grey",
                 selected=is_selected,
                 on_click=lambda e, w=word: self.on_ocr_word_click(w),
             )
