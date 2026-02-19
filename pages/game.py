@@ -167,7 +167,7 @@ class GamePage:
         words_with_meaning = [w for w in all_words if w.get('meaning')]
         
         if len(words_with_meaning) < count:
-            self.status_text.value = f"⚠️ 有含义的单词不足 {count} 个，请先添加单词和含义"
+            self.status_text.value = f"[!] 有含义的单词不足 {count} 个，请先添加单词和含义"
             self.status_text.color = ft.colors.ORANGE_600
             self.page.update()
             return
@@ -185,7 +185,7 @@ class GamePage:
         
         self._update_display()
         
-        self.status_text.value = "✓ 游戏开始！点击方块进行匹配"
+        self.status_text.value = "[OK] 游戏开始！点击方块进行匹配"
         self.status_text.color = ft.colors.GREEN_600
         self.page.update()
     
@@ -194,7 +194,7 @@ class GamePage:
         if self.game_words:
             self._on_start_game(e)
         else:
-            self.status_text.value = "⚠️ 请先点击「开始游戏」"
+            self.status_text.value = "[!] 请先点击「开始游戏」"
             self.status_text.color = ft.colors.ORANGE_600
             self.page.update()
     
@@ -341,20 +341,20 @@ class GamePage:
             self.matched_pairs += 1
             self.score += 10
             
-            self.status_text.value = "✓ 匹配正确！+10分"
+            self.status_text.value = "[OK] 匹配正确！+10分"
             self.status_text.color = ft.colors.GREEN_600
             
             # 检查游戏是否结束
             if self.matched_pairs >= self.total_pairs:
                 self.game_active = False
-                self.status_text.value = f"🎉 恭喜完成！最终得分: {self.score}"
+                self.status_text.value = f"[★] 恭喜完成！最终得分: {self.score}"
                 self.status_text.color = ft.colors.PURPLE_600
         else:
             # 匹配失败
             self.selected_block['selected'] = False
             self.score = max(0, self.score - 2)
             
-            self.status_text.value = "✗ 匹配失败，-2分"
+            self.status_text.value = "[X] 匹配失败，-2分"
             self.status_text.color = ft.colors.RED_500
         
         self.selected_block = None

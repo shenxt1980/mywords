@@ -311,7 +311,7 @@ class ReviewPage:
         self.review_words = db.get_words_for_review(sort_mode, limit)
         
         if not self.review_words:
-            self.status_text.value = "⚠️ 没有可背诵的单词，请先添加单词"
+            self.status_text.value = "[!] 没有可背诵的单词，请先添加单词"
             self.status_text.color = ft.colors.ORANGE_600
             self.page.update()
             return
@@ -339,7 +339,7 @@ class ReviewPage:
             self.unknown_btn.visible = False
             self.meaning_display.visible = False
         
-        self.status_text.value = f"✓ 开始背诵，共 {self.total_count} 个单词"
+        self.status_text.value = f"[OK] 开始背诵，共 {self.total_count} 个单词"
         self.status_text.color = ft.colors.GREEN_600
         self.page.update()
     
@@ -415,11 +415,11 @@ class ReviewPage:
         is_correct = user_answer == correct_answer or user_answer in correct_answer or correct_answer in user_answer
         
         if is_correct:
-            self.result_text.value = "✓ 正确！"
+            self.result_text.value = "[OK] 正确！"
             self.result_text.color = ft.colors.GREEN_600
             self.correct_count += 1
         else:
-            self.result_text.value = f"✗ 错误！正确答案: {correct_answer}"
+            self.result_text.value = f"[X] 错误！正确答案: {correct_answer}"
             self.result_text.color = ft.colors.RED_600
         
         self.meaning_display.visible = True
@@ -466,7 +466,7 @@ class ReviewPage:
         self.unknown_btn.visible = False
         self.next_btn.visible = False
         
-        self.status_text.value = "✓ 背诵完成！继续加油！"
+        self.status_text.value = "[OK] 背诵完成！继续加油！"
         self.status_text.color = ft.colors.GREEN_600
         
         self.page.update()

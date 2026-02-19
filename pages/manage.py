@@ -350,7 +350,7 @@ class ManagePage:
         self.search_input.value = ""
         self.selected_ids.clear()
         self._load_words()
-        self.status_text.value = "✓ 已刷新"
+        self.status_text.value = "[OK] 已刷新"
         self.status_text.color = ft.colors.GREEN_600
         self.page.update()
     
@@ -358,7 +358,7 @@ class ManagePage:
         """全选"""
         self.selected_ids = {w['id'] for w in self.all_words}
         self._display_words()
-        self.status_text.value = f"✓ 已选中 {len(self.selected_ids)} 个单词"
+        self.status_text.value = f"[OK] 已选中 {len(self.selected_ids)} 个单词"
         self.status_text.color = ft.colors.BLUE_600
         self.page.update()
     
@@ -366,7 +366,7 @@ class ManagePage:
         """取消全选"""
         self.selected_ids.clear()
         self._display_words()
-        self.status_text.value = "✓ 已取消选择"
+        self.status_text.value = "[OK] 已取消选择"
         self.status_text.color = ft.colors.GREY_600
         self.page.update()
     
@@ -379,7 +379,7 @@ class ManagePage:
             words_to_export = self.all_words
         
         if not words_to_export:
-            self.status_text.value = "⚠️ 没有可导出的单词"
+            self.status_text.value = "[!] 没有可导出的单词"
             self.status_text.color = ft.colors.ORANGE_600
             self.page.update()
             return
@@ -396,13 +396,13 @@ class ManagePage:
             word_ids = [w['id'] for w in words_to_export]
             db.increment_print_count(word_ids)
             
-            self.status_text.value = f"✓ {message}"
+            self.status_text.value = f"[OK] {message}"
             self.status_text.color = ft.colors.GREEN_600
             
             # 刷新列表
             self._load_words(self.search_input.value or "")
         else:
-            self.status_text.value = f"❌ {message}"
+            self.status_text.value = f"[X] {message}"
             self.status_text.color = ft.colors.RED_500
         
         self.page.update()
@@ -431,7 +431,7 @@ class ManagePage:
             self.edit_dialog.open = False
             self.page.update()
             self._load_words(self.search_input.value or "")
-            self.status_text.value = "✓ 已保存修改"
+            self.status_text.value = "[OK] 已保存修改"
             self.status_text.color = ft.colors.GREEN_600
             self.page.update()
         
@@ -469,7 +469,7 @@ class ManagePage:
         """查词典获取含义"""
         word = word_info.get('word', '')
         
-        self.status_text.value = f"⏳ 正在查询 '{word}' 的释义..."
+        self.status_text.value = f"[...] 正在查询 '{word}' 的释义..."
         self.status_text.color = ft.colors.BLUE_600
         self.page.update()
         
@@ -486,10 +486,10 @@ class ManagePage:
                 example_sentence=result.get('example', ''),
             )
             self._load_words(self.search_input.value or "")
-            self.status_text.value = f"✓ 已更新 '{word}' 的释义"
+            self.status_text.value = f"[OK] 已更新 '{word}' 的释义"
             self.status_text.color = ft.colors.GREEN_600
         else:
-            self.status_text.value = f"⚠️ 未能找到 '{word}' 的释义"
+            self.status_text.value = f"[!] 未能找到 '{word}' 的释义"
             self.status_text.color = ft.colors.ORANGE_600
         
         self.page.update()
@@ -504,7 +504,7 @@ class ManagePage:
             self.selected_ids.discard(word_id)
             self.confirm_dialog.open = False
             self._load_words(self.search_input.value or "")
-            self.status_text.value = f"✓ 已删除 '{word}'"
+            self.status_text.value = f"[OK] 已删除 '{word}'"
             self.status_text.color = ft.colors.GREEN_600
             self.page.update()
         

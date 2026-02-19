@@ -410,12 +410,12 @@ def run_app(web_mode: bool = False, port: int = 8555):
         # Web模式 - 手机可通过IP地址访问
         local_ip = get_local_ip()
         print("=" * 50)
-        print("🚀 单词背诵软件已启动!")
+        print(">> 单词背诵软件已启动!")
         print("=" * 50)
-        print(f"📱 电脑访问: http://localhost:{port}")
-        print(f"📱 手机访问: http://{local_ip}:{port}")
+        print(f"[电脑] http://localhost:{port}")
+        print(f"[手机] http://{local_ip}:{port}")
         print("=" * 50)
-        print("⚠️ 请确保手机和电脑在同一WiFi网络下")
+        print("[提示] 请确保手机和电脑在同一WiFi网络下")
         print("=" * 50)
         
         ft.app(
@@ -427,7 +427,7 @@ def run_app(web_mode: bool = False, port: int = 8555):
     else:
         # 桌面模式 - 作为桌面应用运行
         print("=" * 50)
-        print("🚀 单词背诵软件已启动!")
+        print(">> 单词背诵软件已启动!")
         print("=" * 50)
         ft.app(target=app.main)
 

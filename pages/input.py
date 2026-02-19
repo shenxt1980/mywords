@@ -1,49 +1,68 @@
 # -*- coding: utf-8 -*-
 """
-单词采集页面 - 支持文本导入和图片OCR识别
+单词采集页面 - 支持文本导入、截图粘贴和图片OCR识别
 """
 
 import os
+import re
 import flet as ft
 from typing import List, Dict, Callable
 
-# 导入其他模块
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database import db
-from ocr_handler import ocr_handler
+
+
+def extract_english_words_from_text(text: str) -> List[str]:
+    """
+    从文本中提取英文单词（不依赖OCR库）
+    
+    参数:
+        text: 输入文本
+    
+    返回:
+        List[str]: 英文单词列表（去重、排序）
+    """
+    pattern = r"[a-zA-Z]+(?:[-'][a-zA-Z]+)*"
+    words = re.findall(pattern, text)
+    unique_words = sorted(set(word.lower() for word in words if len(word) > 1))
+    return unique_words
 
 
 class InputPage:
     """单词采集页面"""
     
     def __init__(self, page: ft.Page, on_navigate: Callable = None):
-        """
-        初始化单词采集页面
-        
-        参数:
-            page: Flet页面对象
-            on_navigate: 导航回调函数
-        """
         self.page = page
         self.on_navigate = on_navigate
         
-        # 状态变量
-        self.recognized_text = ""  # OCR识别的文本
-        self.extracted_words: List[str] = []  # 提取的单词列表
-        self.selected_words: set = set()  # 用户选中的单词
+        self.recognized_text = ""
+        self.extracted_words: List[str] = []
+        self.selected_words: set = set()
         
-        # UI组件
         self.text_input = None
         self.word_container = None
         self.status_text = None
         self.selected_count_text = None
+        self.ocr_status_text = None
+        
+        self._init_ocr()
+    
+    def _init_ocr(self):
+        """延迟初始化OCR"""
+        self.ocr_handler = None
+        self.ocr_available = False
+        self.ocr_error = ""
+        
+        try:
+            from ocr_handler import ocr_handler
+            self.ocr_handler = ocr_handler
+            self.ocr_available, self.ocr_error = ocr_handler.is_available()
+        except Exception as e:
+            self.ocr_error = str(e)
     
     def build(self) -> ft.Control:
-        """构建页面UI"""
-        
-        # 标题
         title = ft.Text(
             "单词采集",
             size=24,
@@ -51,25 +70,25 @@ class InputPage:
             color=ft.colors.BLUE_700
         )
         
-        # 说明文字
         description = ft.Text(
-            "通过粘贴文本或上传图片来采集陌生单词",
+            "粘贴文本、粘贴截图或上传图片来采集陌生单词",
             size=14,
             color=ft.colors.GREY_600
         )
         
-        # 文本输入区域
         self.text_input = ft.TextField(
-            label="粘贴或输入文本",
+            label="粘贴或输入文本（支持Ctrl+V粘贴截图）",
             multiline=True,
             min_lines=5,
             max_lines=10,
-            hint_text="在此粘贴阅读理解文章或其他文本...",
+            hint_text="在此粘贴阅读理解文章，或直接Ctrl+V粘贴截图...",
             border_color=ft.colors.BLUE_400,
             focused_border_color=ft.colors.BLUE_700,
+            on_change=self._on_text_change,
         )
         
-        # 按钮行
+        self.status_text = ft.Text("", size=14, color=ft.colors.GREEN_700)
+        
         buttons_row = ft.Row(
             controls=[
                 ft.ElevatedButton(
@@ -77,6 +96,13 @@ class InputPage:
                     icon=ft.icons.TEXT_FIELDS,
                     on_click=self._on_extract_from_text,
                     bgcolor=ft.colors.BLUE_600,
+                    color=ft.colors.WHITE,
+                ),
+                ft.ElevatedButton(
+                    "粘贴截图",
+                    icon=ft.icons.CONTENT_PASTE,
+                    on_click=self._on_paste_clipboard,
+                    bgcolor=ft.colors.TEAL_600,
                     color=ft.colors.WHITE,
                 ),
                 ft.ElevatedButton(
@@ -96,33 +122,26 @@ class InputPage:
             ],
             alignment=ft.MainAxisAlignment.CENTER,
             spacing=10,
+            wrap=True,
         )
         
-        # OCR状态文本
-        ocr_status = ft.Text(
+        self.ocr_status_text = ft.Text(
             "",
             size=12,
-            color=ft.colors.ORANGE_700,
         )
-        self.ocr_status_text = ocr_status
-        
-        # 检查OCR状态
-        available, error = ocr_handler.is_available()
-        if not available:
-            ocr_status.value = f"⚠️ OCR不可用: {error}"
-            ocr_status.color = ft.colors.RED_500
+        if self.ocr_available:
+            self.ocr_status_text.value = "[OK] 图片OCR功能已就绪"
+            self.ocr_status_text.color = ft.colors.GREEN_600
         else:
-            ocr_status.value = "✓ OCR已就绪"
-            ocr_status.color = ft.colors.GREEN_600
+            self.ocr_status_text.value = "[提示] 图片OCR不可用，文本提取功能正常。如需图片识别请安装: pip install easyocr"
+            self.ocr_status_text.color = ft.colors.GREY_600
         
-        # 单词显示区域
         self.word_container = ft.Column(
             controls=[],
             scroll=ft.ScrollMode.AUTO,
-            height=300,
+            height=250,
         )
         
-        # 单词显示容器
         word_section = ft.Container(
             content=ft.Column(
                 controls=[
@@ -137,7 +156,6 @@ class InputPage:
             border=ft.border.all(1, ft.colors.GREY_300),
         )
         
-        # 选中计数和提交按钮
         self.selected_count_text = ft.Text(
             "已选中: 0 个单词",
             size=14,
@@ -151,14 +169,10 @@ class InputPage:
             on_click=self._on_submit,
             bgcolor=ft.colors.PURPLE_600,
             color=ft.colors.WHITE,
-            width=200,
+            width=180,
             height=45,
         )
         
-        # 状态文本
-        self.status_text = ft.Text("", size=14, color=ft.colors.GREEN_700)
-        
-        # 全选/取消全选按钮
         select_buttons = ft.Row(
             controls=[
                 ft.TextButton(
@@ -175,19 +189,18 @@ class InputPage:
             alignment=ft.MainAxisAlignment.CENTER,
         )
         
-        # 主布局
         return ft.Column(
             controls=[
                 title,
                 ft.Container(height=10),
                 description,
-                ft.Container(height=20),
+                ft.Container(height=15),
                 self.text_input,
                 ft.Container(height=10),
                 buttons_row,
                 ft.Container(height=5),
-                ocr_status,
-                ft.Container(height=20),
+                self.ocr_status_text,
+                ft.Container(height=15),
                 word_section,
                 ft.Container(height=10),
                 select_buttons,
@@ -203,42 +216,79 @@ class InputPage:
             expand=True,
         )
     
+    def _on_text_change(self, e):
+        """文本变化时的事件"""
+        pass
+    
     def _on_extract_from_text(self, e):
         """从文本中提取单词"""
-        text = self.text_input.value
-        if not text or not text.strip():
-            self.status_text.value = "⚠️ 请先输入或粘贴文本"
+        try:
+            text = self.text_input.value
+            if not text or not text.strip():
+                self.status_text.value = "[!] 请先输入或粘贴文本"
+                self.status_text.color = ft.colors.RED_500
+                self.page.update()
+                return
+            
+            self.extracted_words = extract_english_words_from_text(text)
+            
+            if not self.extracted_words:
+                self.status_text.value = "[!] 未在文本中找到英文单词"
+                self.status_text.color = ft.colors.ORANGE_600
+                self.page.update()
+                return
+            
+            self.selected_words.clear()
+            self._display_words()
+            
+            self.status_text.value = f"[OK] 已提取 {len(self.extracted_words)} 个单词"
+            self.status_text.color = ft.colors.GREEN_600
+            self.page.update()
+            
+        except Exception as ex:
+            self.status_text.value = f"[错误] {str(ex)}"
             self.status_text.color = ft.colors.RED_500
             self.page.update()
-            return
+    
+    def _on_paste_clipboard(self, e):
+        """粘贴剪贴板内容"""
+        self.status_text.value = "[...] 正在读取剪贴板..."
+        self.status_text.color = ft.colors.BLUE_600
+        self.page.update()
         
-        # 提取英文单词
-        self.extracted_words = ocr_handler.extract_english_words(text)
+        try:
+            import pyperclip
+            clipboard_text = pyperclip.paste()
+            
+            if clipboard_text and clipboard_text.strip():
+                self.text_input.value = clipboard_text
+                self.status_text.value = "[OK] 已粘贴文本，请点击\"提取单词\""
+                self.status_text.color = ft.colors.GREEN_600
+            else:
+                self.status_text.value = "[!] 剪贴板中没有文本内容"
+                self.status_text.color = ft.colors.ORANGE_600
+            
+        except ImportError:
+            self.status_text.value = "[提示] 请直接在文本框中按 Ctrl+V 粘贴"
+            self.status_text.color = ft.colors.BLUE_600
+        except Exception as ex:
+            self.status_text.value = f"[错误] {str(ex)}"
+            self.status_text.color = ft.colors.RED_500
         
-        if not self.extracted_words:
-            self.status_text.value = "⚠️ 未在文本中找到英文单词"
-            self.status_text.color = ft.colors.ORANGE_600
-            self.page.update()
-            return
-        
-        # 清空选中状态
-        self.selected_words.clear()
-        
-        # 显示单词列表
-        self._display_words()
-        
-        self.status_text.value = f"✓ 已提取 {len(self.extracted_words)} 个单词"
-        self.status_text.color = ft.colors.GREEN_600
         self.page.update()
     
     def _on_upload_image(self, e):
         """上传图片并识别"""
-        # 创建文件选择器
+        if not self.ocr_available or not self.ocr_handler:
+            self.status_text.value = "[!] 图片OCR功能不可用，请安装 easyocr"
+            self.status_text.color = ft.colors.RED_500
+            self.page.update()
+            return
+        
         file_picker = ft.FilePicker(on_result=self._on_file_picker_result)
         self.page.overlay.append(file_picker)
         self.page.update()
         
-        # 打开文件选择对话框
         file_picker.pick_files(
             allowed_extensions=["png", "jpg", "jpeg", "bmp", "gif"],
             allow_multiple=False
@@ -252,51 +302,43 @@ class InputPage:
         file = e.files[0]
         file_path = file.path
         
-        self.status_text.value = "⏳ 正在识别图片，请稍候..."
+        self.status_text.value = "[...] 正在识别图片，请稍候..."
         self.status_text.color = ft.colors.BLUE_600
         self.page.update()
         
-        # 识别图片
-        success, result = ocr_handler.recognize_image(file_path)
+        success, result = self.ocr_handler.recognize_image(file_path)
         
         if not success:
-            self.status_text.value = f"❌ 识别失败: {result}"
+            self.status_text.value = f"[错误] {result}"
             self.status_text.color = ft.colors.RED_500
             self.page.update()
             return
         
-        # 显示识别的文本
         self.text_input.value = result
         self.recognized_text = result
         
-        # 提取单词
-        self.extracted_words = ocr_handler.extract_english_words(result)
+        self.extracted_words = extract_english_words_from_text(result)
         
         if not self.extracted_words:
-            self.status_text.value = "⚠️ 图片中未识别到英文单词"
+            self.status_text.value = "[!] 图片中未识别到英文单词"
             self.status_text.color = ft.colors.ORANGE_600
             self.page.update()
             return
         
-        # 清空选中状态
         self.selected_words.clear()
-        
-        # 显示单词列表
         self._display_words()
         
-        self.status_text.value = f"✓ 识别成功，提取了 {len(self.extracted_words)} 个单词"
+        self.status_text.value = f"[OK] 识别成功，提取了 {len(self.extracted_words)} 个单词"
         self.status_text.color = ft.colors.GREEN_600
         self.page.update()
     
     def _display_words(self):
-        """显示单词列表，每个单词可点击选择"""
+        """显示单词列表"""
         self.word_container.controls.clear()
         
-        # 使用Wrap布局，让单词自动换行
         word_chips = []
         
         for word in self.extracted_words:
-            # 创建可点击的单词chip
             chip = ft.Chip(
                 label=ft.Text(word, size=12),
                 bgcolor=ft.colors.BLUE_50,
@@ -306,7 +348,6 @@ class InputPage:
             )
             word_chips.append(chip)
         
-        # 使用Wrap让单词自动换行排列
         wrap = ft.Wrap(
             controls=word_chips,
             spacing=8,
@@ -318,16 +359,14 @@ class InputPage:
         self.page.update()
     
     def _on_word_click(self, e, word: str):
-        """单词点击事件处理"""
+        """单词点击事件"""
         chip = e.control
         
         if word in self.selected_words:
-            # 取消选中
             self.selected_words.discard(word)
             chip.selected = False
             chip.bgcolor = ft.colors.BLUE_50
         else:
-            # 选中
             self.selected_words.add(word)
             chip.selected = True
             chip.bgcolor = ft.colors.BLUE_300
@@ -336,7 +375,7 @@ class InputPage:
         self.page.update()
     
     def _on_select_all(self, e):
-        """全选所有单词"""
+        """全选"""
         self.selected_words = set(self.extracted_words)
         self._refresh_word_display()
     
@@ -373,26 +412,24 @@ class InputPage:
         self.page.update()
     
     def _update_selected_count(self):
-        """更新选中计数显示"""
+        """更新选中计数"""
         count = len(self.selected_words)
         self.selected_count_text.value = f"已选中: {count} 个单词"
     
     def _on_submit(self, e):
         """提交选中的单词"""
         if not self.selected_words:
-            self.status_text.value = "⚠️ 请先选择要添加的单词"
+            self.status_text.value = "[!] 请先选择要添加的单词"
             self.status_text.color = ft.colors.ORANGE_600
             self.page.update()
             return
         
-        # 批量添加到数据库
         words_list = list(self.selected_words)
         new_count, update_count = db.batch_add_words(words_list)
         
-        self.status_text.value = f"✓ 成功添加 {new_count} 个新单词，更新 {update_count} 个已有单词"
+        self.status_text.value = f"[OK] 成功添加 {new_count} 个新单词，更新 {update_count} 个已有单词"
         self.status_text.color = ft.colors.GREEN_600
         
-        # 清空选中状态
         self.selected_words.clear()
         self._refresh_word_display()
         
