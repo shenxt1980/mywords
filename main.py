@@ -1,36 +1,37 @@
 # -*- coding: utf-8 -*-
 """
-陌生单词收集与背诵软件 - 主程序入口
+陌生单词收集与背诵软件 - 主程序
 """
 
 import os
 import sys
-import argparse
 import socket
 
-# 添加项目目录到路径
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import flet as ft
-from flet import AppView
 
-# 导入页面模块
+from database import db
 from pages.input import InputPage
 from pages.manage import ManagePage
 from pages.review import ReviewPage
 from pages.game import GamePage
 
-from database import db
+
+def get_local_ip():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except:
+        return "127.0.0.1"
 
 
-class VocabularyApp:
-    """单词应用主类"""
-    
+class App:
     def __init__(self):
         self.page = None
-        self.current_page = None
-        self.nav_rail = None
-        self.content_area = None
         self.input_page = None
         self.manage_page = None
         self.review_page = None
@@ -38,263 +39,115 @@ class VocabularyApp:
     
     def main(self, page: ft.Page):
         self.page = page
-        self._setup_page()
-        self._create_navigation()
-        self._create_content_area()
-        self._setup_layout()
-        self._navigate_to("home")
-    
-    def _setup_page(self):
-        self.page.title = "陌生单词收集与背诵"
-        self.page.theme_mode = ft.ThemeMode.LIGHT
-        self.page.window.width = 900
-        self.page.window.height = 700
-        self.page.window.min_width = 400
-        self.page.window.min_height = 500
         
-        self.page.theme = ft.Theme(
-            color_scheme_seed=ft.Colors.BLUE,
-        )
-    
-    def _create_navigation(self):
-        self.nav_rail = ft.NavigationRail(
+        # 页面设置
+        page.title = "陌生单词收集与背诵"
+        page.window.width = 900
+        page.window.height = 700
+        
+        # 导航
+        def on_nav(e):
+            index = e.control.selected_index
+            pages = ["home", "input", "manage", "review", "game"]
+            show_page(pages[index])
+        
+        self.nav = ft.NavigationRail(
             selected_index=0,
             label_type=ft.NavigationRailLabelType.ALL,
-            min_width=100,
-            min_extended_width=200,
             destinations=[
-                ft.NavigationRailDestination(
-                    icon=ft.Icons.HOME_OUTLINED,
-                    selected_icon=ft.Icons.HOME,
-                    label="首页",
-                ),
-                ft.NavigationRailDestination(
-                    icon=ft.Icons.ADD_BOX_OUTLINED,
-                    selected_icon=ft.Icons.ADD_BOX,
-                    label="采集",
-                ),
-                ft.NavigationRailDestination(
-                    icon=ft.Icons.LIST_ALT_OUTLINED,
-                    selected_icon=ft.Icons.LIST_ALT,
-                    label="管理",
-                ),
-                ft.NavigationRailDestination(
-                    icon=ft.Icons.SCHOOL_OUTLINED,
-                    selected_icon=ft.Icons.SCHOOL,
-                    label="背诵",
-                ),
-                ft.NavigationRailDestination(
-                    icon=ft.Icons.GAMES_OUTLINED,
-                    selected_icon=ft.Icons.GAMES,
-                    label="游戏",
-                ),
+                ft.NavigationRailDestination(icon=ft.icons.HOME, label="首页"),
+                ft.NavigationRailDestination(icon=ft.icons.ADD_BOX, label="采集"),
+                ft.NavigationRailDestination(icon=ft.icons.LIST, label="管理"),
+                ft.NavigationRailDestination(icon=ft.icons.SCHOOL, label="背诵"),
+                ft.NavigationRailDestination(icon=ft.icons.GAMES, label="游戏"),
             ],
-            on_change=self._on_nav_change,
-            bgcolor=ft.Colors.BLUE_50,
+            on_change=on_nav,
         )
-    
-    def _create_content_area(self):
-        self.content_area = ft.Container(
-            content=ft.Column(
-                controls=[],
-                scroll=ft.ScrollMode.AUTO,
-                expand=True,
-            ),
+        
+        self.content = ft.Container(
+            content=ft.Column([ft.Text("加载中...")], scroll=ft.ScrollMode.AUTO, expand=True),
             padding=20,
             expand=True,
         )
-    
-    def _setup_layout(self):
-        main_row = ft.Row(
-            controls=[
-                self.nav_rail,
+        
+        page.add(
+            ft.Row([
+                self.nav,
                 ft.VerticalDivider(width=1),
-                self.content_area,
-            ],
-            expand=True,
+                self.content,
+            ], expand=True)
         )
-        self.page.add(main_row)
-    
-    def _on_nav_change(self, e):
-        index = e.control.selected_index
-        pages = ["home", "input", "manage", "review", "game"]
-        self._navigate_to(pages[index])
-    
-    def _navigate_to(self, page_name: str):
-        self.content_area.content.controls.clear()
         
-        if page_name == "home":
-            content = self._build_home_page()
-        elif page_name == "input":
-            if self.input_page is None:
+        show_page("home")
+    
+    def show_page(self, name):
+        if name == "home":
+            self.content.content = self.build_home()
+        elif name == "input":
+            if not self.input_page:
                 self.input_page = InputPage(self.page)
-            content = self.input_page.build()
-        elif page_name == "manage":
-            if self.manage_page is None:
+            self.content.content = self.input_page.build()
+        elif name == "manage":
+            if not self.manage_page:
                 self.manage_page = ManagePage(self.page)
-            content = self.manage_page.build()
-        elif page_name == "review":
-            if self.review_page is None:
+            self.content.content = self.manage_page.build()
+        elif name == "review":
+            if not self.review_page:
                 self.review_page = ReviewPage(self.page)
-            content = self.review_page.build()
-        elif page_name == "game":
-            if self.game_page is None:
+            self.content.content = self.review_page.build()
+        elif name == "game":
+            if not self.game_page:
                 self.game_page = GamePage(self.page)
-            content = self.game_page.build()
-        else:
-            content = ft.Text("页面未找到")
+            self.content.content = self.game_page.build()
         
-        self.content_area.content.controls.append(content)
-        self.current_page = page_name
         self.page.update()
     
-    def _build_home_page(self) -> ft.Control:
+    def build_home(self):
         stats = db.get_statistics()
         
-        title = ft.Text(
-            "陌生单词收集与背诵软件",
-            size=28,
-            weight=ft.FontWeight.BOLD,
-            color=ft.Colors.BLUE_700,
-            text_align=ft.TextAlign.CENTER,
-        )
-        
-        subtitle = ft.Text(
-            "Vocabulary Collector & Learner",
-            size=14,
-            color=ft.Colors.GREY_600,
-            text_align=ft.TextAlign.CENTER,
-            italic=True,
-        )
-        
-        stats_cards = ft.Row(
-            controls=[
-                self._create_stat_card("单词总数", str(stats['total_words']), ft.Colors.BLUE_600),
-                self._create_stat_card("选择次数", str(stats['total_selections']), ft.Colors.GREEN_600),
-                self._create_stat_card("打印次数", str(stats['total_prints']), ft.Colors.ORANGE_600),
-                self._create_stat_card("背诵次数", str(stats['total_recitations']), ft.Colors.PURPLE_600),
-            ],
-            alignment=ft.MainAxisAlignment.CENTER,
-            spacing=15,
-            wrap=True,
-        )
-        
-        features = ft.Column(
-            controls=[
-                ft.Text("功能介绍", size=18, weight=ft.FontWeight.BOLD, color=ft.Colors.BLUE_700),
-                ft.Container(height=10),
-                self._create_feature_item(ft.Icons.ADD_BOX, "单词采集", "支持粘贴文本或上传图片", ft.Colors.GREEN_600),
-                self._create_feature_item(ft.Icons.LIST_ALT, "单词管理", "查看、编辑、导出PDF", ft.Colors.BLUE_600),
-                self._create_feature_item(ft.Icons.SCHOOL, "背诵复习", "浏览模式和默写模式", ft.Colors.PURPLE_600),
-                self._create_feature_item(ft.Icons.GAMES, "连连看游戏", "趣味单词匹配", ft.Colors.PINK_600),
-            ],
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-        )
-        
-        quick_start = ft.Row(
-            controls=[
-                ft.ElevatedButton(
-                    "开始采集",
-                    icon=ft.Icons.ADD,
-                    on_click=lambda e: self._navigate_to("input"),
-                    bgcolor=ft.Colors.GREEN_600,
-                    color=ft.Colors.WHITE,
-                    width=150,
-                    height=45,
-                ),
-                ft.ElevatedButton(
-                    "开始背诵",
-                    icon=ft.Icons.SCHOOL,
-                    on_click=lambda e: self._navigate_to("review"),
-                    bgcolor=ft.Colors.PURPLE_600,
-                    color=ft.Colors.WHITE,
-                    width=150,
-                    height=45,
-                ),
-            ],
-            alignment=ft.MainAxisAlignment.CENTER,
-            spacing=20,
-        )
-        
-        return ft.Column(
-            controls=[
-                ft.Container(height=20),
-                title,
-                ft.Container(height=5),
-                subtitle,
-                ft.Container(height=25),
-                stats_cards,
-                ft.Container(height=25),
-                ft.Divider(),
-                ft.Container(height=15),
-                features,
-                ft.Container(height=25),
-                quick_start,
-            ],
-            scroll=ft.ScrollMode.AUTO,
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            expand=True,
+        return ft.Column([
+            ft.Container(height=30),
+            ft.Text("陌生单词收集与背诵", size=28, weight=ft.FontWeight.W_BOLD, color="blue"),
+            ft.Container(height=20),
+            ft.Row([
+                self.stat_card("单词总数", stats['total_words'], "blue"),
+                self.stat_card("选择次数", stats['total_selections'], "green"),
+                self.stat_card("打印次数", stats['total_prints'], "orange"),
+                self.stat_card("背诵次数", stats['total_recitations'], "purple"),
+            ], alignment=ft.MainAxisAlignment.CENTER),
+            ft.Container(height=30),
+            ft.Divider(),
+            ft.Container(height=20),
+            ft.ElevatedButton("开始采集单词", on_click=lambda e: self.go_to("input"), width=200, height=50),
+            ft.Container(height=10),
+            ft.ElevatedButton("开始背诵", on_click=lambda e: self.go_to("review"), width=200, height=50),
+            ft.Container(height=20),
+            ft.Text("提示: 点击左侧导航切换功能", color="grey"),
+        ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, scroll=ft.ScrollMode.AUTO, expand=True)
+    
+    def stat_card(self, label, value, color):
+        return ft.Container(
+            content=ft.Column([
+                ft.Text(label, size=12, color="grey"),
+                ft.Text(str(value), size=24, weight=ft.FontWeight.W_BOLD, color=color),
+            ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
+            padding=15,
+            border=ft.border.all(1, "grey"),
+            border_radius=10,
         )
     
-    def _create_stat_card(self, label: str, value: str, color: str) -> ft.Control:
-        return ft.Container(
-            content=ft.Column(
-                controls=[
-                    ft.Text(label, size=11, color=ft.Colors.GREY_600),
-                    ft.Text(value, size=24, weight=ft.FontWeight.BOLD, color=color),
-                ],
-                horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            ),
-            bgcolor=ft.Colors.WHITE,
-            padding=12,
-            border_radius=8,
-            width=120,
-            border=ft.border.all(1, ft.Colors.GREY_300),
-        )
-    
-    def _create_feature_item(self, icon: str, title: str, description: str, color: str) -> ft.Control:
-        return ft.Container(
-            content=ft.Row(
-                controls=[
-                    ft.Icon(icon, color=color, size=26),
-                    ft.Column(
-                        controls=[
-                            ft.Text(title, size=13, weight=ft.FontWeight.BOLD, color=color),
-                            ft.Text(description, size=11, color=ft.Colors.GREY_600),
-                        ],
-                        spacing=2,
-                    ),
-                ],
-                spacing=12,
-            ),
-            padding=8,
-            width=350,
-        )
-
-
-def get_local_ip():
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        local_ip = s.getsockname()[0]
-        s.close()
-        return local_ip
-    except Exception:
-        return "127.0.0.1"
-
-
-def run_app():
-    app = VocabularyApp()
-    ft.app(target=app.main)
+    def go_to(self, name):
+        index = {"home": 0, "input": 1, "manage": 2, "review": 3, "game": 4}
+        self.nav.selected_index = index.get(name, 0)
+        self.show_page(name)
 
 
 if __name__ == "__main__":
     print("=" * 50)
-    print(">> 单词背诵软件启动中...")
+    print("  陌生单词收集与背诵软件")
     print("=" * 50)
     
     if len(sys.argv) > 1 and sys.argv[1] == "--web":
-        local_ip = get_local_ip()
         port = 8555
         if len(sys.argv) > 2:
             try:
@@ -302,23 +155,15 @@ if __name__ == "__main__":
             except:
                 pass
         
-        print(f"[电脑] http://localhost:{port}")
-        print(f"[手机] http://{local_ip}:{port}")
+        ip = get_local_ip()
+        print(f"  电脑访问: http://localhost:{port}")
+        print(f"  手机访问: http://{ip}:{port}")
         print("=" * 50)
-        print("[提示] 请确保手机和电脑在同一WiFi网络下")
-        print("[提示] 如手机无法访问，请检查Windows防火墙")
+        print("  提示: 确保手机和电脑在同一WiFi")
         print("=" * 50)
         
-        os.environ["FLET_SERVER_PORT"] = str(port)
-        os.environ["FLET_SERVER_IP"] = "0.0.0.0"
-        
-        app = VocabularyApp()
-        ft.app(
-            target=app.main,
-            view=AppView.WEB_BROWSER,
-            port=port,
-        )
+        ft.app(target=App().main, view=ft.AppView.WEB_BROWSER, port=port)
     else:
-        print("[桌面模式] 启动中...")
+        print("  启动桌面模式...")
         print("=" * 50)
-        run_app()
+        ft.app(target=App().main)
