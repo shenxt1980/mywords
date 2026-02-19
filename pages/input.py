@@ -81,15 +81,15 @@ class InputPage:
         self.ocr_original_text = self.ocr_text_display.content.controls[1]
         
         # OCR单词选择区
+        self.ocr_chips_container = ft.Row([], wrap=True, spacing=5, run_spacing=5)
         self.ocr_words_area = ft.Container(
             content=ft.Column([
                 ft.Text("点击选择单词:", size=12),
-                ft.Wrap([], spacing=5, run_spacing=5),  # 单词chips
+                self.ocr_chips_container,
             ]),
             padding=10,
             visible=False,
         )
-        self.ocr_chips = self.ocr_words_area.content.controls[1]
         
         # === 待提交单词列表 ===
         list_title = ft.Text("待提交单词列表", size=16, weight=ft.FontWeight.BOLD, color="purple")
@@ -250,7 +250,7 @@ class InputPage:
     
     def display_ocr_words(self):
         """显示OCR单词chips"""
-        self.ocr_chips.controls.clear()
+        self.ocr_chips_container.controls.clear()
         
         for word in self.ocr_words:
             is_selected = word in self.ocr_selected
@@ -260,7 +260,7 @@ class InputPage:
                 selected=is_selected,
                 on_click=lambda e, w=word: self.on_ocr_word_click(w),
             )
-            self.ocr_chips.controls.append(chip)
+            self.ocr_chips_container.controls.append(chip)
         
         self.page.update()
     
