@@ -306,9 +306,11 @@ if __name__ == "__main__":
         print(f"[手机] http://{local_ip}:{port}")
         print("=" * 50)
         print("[提示] 请确保手机和电脑在同一WiFi网络下")
+        print("[提示] 如手机无法访问，请检查Windows防火墙")
         print("=" * 50)
         
         os.environ["FLET_SERVER_PORT"] = str(port)
+        os.environ["FLET_SERVER_IP"] = "0.0.0.0"
         
         app = VocabularyApp()
         ft.app(
