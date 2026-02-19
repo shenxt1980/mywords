@@ -107,7 +107,7 @@ class App:
         
         return ft.Column([
             ft.Container(height=30),
-            ft.Text("陌生单词收集与背诵", size=28, weight=ft.FontWeight.W_BOLD, color="blue"),
+            ft.Text("陌生单词收集与背诵", size=28, weight=ft.FontWeight.BOLD, color="blue"),
             ft.Container(height=20),
             ft.Row([
                 self.stat_card("单词总数", stats['total_words'], "blue"),
@@ -129,7 +129,7 @@ class App:
         return ft.Container(
             content=ft.Column([
                 ft.Text(label, size=12, color="grey"),
-                ft.Text(str(value), size=24, weight=ft.FontWeight.W_BOLD, color=color),
+                ft.Text(str(value), size=24, weight=ft.FontWeight.BOLD, color=color),
             ], horizontal_alignment=ft.CrossAxisAlignment.CENTER),
             padding=15,
             border=ft.border.all(1, "grey"),

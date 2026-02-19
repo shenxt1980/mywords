@@ -24,7 +24,7 @@ class GamePage:
         self.matched = 0
     
     def build(self):
-        title = ft.Text("连连看游戏", size=24, weight=ft.FontWeight.W_BOLD)
+        title = ft.Text("连连看游戏", size=24, weight=ft.FontWeight.BOLD)
         
         self.count_dropdown = ft.Dropdown(
             options=[
@@ -37,7 +37,7 @@ class GamePage:
         
         start_btn = ft.ElevatedButton("开始游戏", on_click=self.start_game, bgcolor="green", color="white")
         
-        self.score_text = ft.Text("得分: 0", size=18, weight=ft.FontWeight.W_BOLD, color="purple")
+        self.score_text = ft.Text("得分: 0", size=18, weight=ft.FontWeight.BOLD, color="purple")
         self.progress_text = ft.Text("", color="grey")
         self.status_text = ft.Text("")
         

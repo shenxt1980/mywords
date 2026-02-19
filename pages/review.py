@@ -23,7 +23,7 @@ class ReviewPage:
         self.show_meaning = False
     
     def build(self):
-        title = ft.Text("背诵复习", size=24, weight=ft.FontWeight.W_BOLD)
+        title = ft.Text("背诵复习", size=24, weight=ft.FontWeight.BOLD)
         
         # 设置
         self.count_dropdown = ft.Dropdown(
@@ -41,7 +41,7 @@ class ReviewPage:
         show_btn = ft.ElevatedButton("显示含义", on_click=self.show_answer)
         
         # 单词显示
-        self.word_text = ft.Text("", size=28, weight=ft.FontWeight.W_BOLD, color="blue")
+        self.word_text = ft.Text("", size=28, weight=ft.FontWeight.BOLD, color="blue")
         self.meaning_text = ft.Text("", size=18, color="green", visible=False)
         self.progress_text = ft.Text("", color="grey")
         self.status_text = ft.Text("")

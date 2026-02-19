@@ -21,7 +21,7 @@ class ManagePage:
         self.sort_by = "alphabetical"
     
     def build(self):
-        title = ft.Text("单词管理", size=24, weight=ft.FontWeight.W_BOLD)
+        title = ft.Text("单词管理", size=24, weight=ft.FontWeight.BOLD)
         
         self.sort_dropdown = ft.Dropdown(
             options=[
@@ -70,7 +70,7 @@ class ManagePage:
             card = ft.Container(
                 content=ft.Column([
                     ft.Row([
-                        ft.Text(w['word'], size=16, weight=ft.FontWeight.W_BOLD, color="blue"),
+                        ft.Text(w['word'], size=16, weight=ft.FontWeight.BOLD, color="blue"),
                         ft.Text(w.get('phonetic') or '', color="grey", size=12),
                     ]),
                     ft.Text(w.get('meaning') or '（待补充）', size=12),

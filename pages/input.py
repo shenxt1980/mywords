@@ -31,7 +31,7 @@ class InputPage:
     
     def build(self):
         # 标题
-        title = ft.Text("单词采集", size=24, weight=ft.FontWeight.W_BOLD)
+        title = ft.Text("单词采集", size=24, weight=ft.FontWeight.BOLD)
         
         # 文本输入
         self.text_input = ft.TextField(
