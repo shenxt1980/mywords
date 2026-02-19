@@ -49,7 +49,7 @@ class App:
         def on_nav(e):
             index = e.control.selected_index
             pages = ["home", "input", "manage", "review", "game"]
-            show_page(pages[index])
+            self.show_page(pages[index])
         
         self.nav = ft.NavigationRail(
             selected_index=0,
@@ -78,7 +78,7 @@ class App:
             ], expand=True)
         )
         
-        show_page("home")
+        self.show_page("home")
     
     def show_page(self, name):
         if name == "home":
