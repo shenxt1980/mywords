@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-连连看游戏页面 - 简化版
+连连看游戏页面
 """
 
 import os
@@ -19,7 +19,8 @@ class GamePage:
     def __init__(self, page: ft.Page, on_navigate=None):
         self.page = page
         self.words = []
-        self.selected = None
+        self.blocks = []  # 保存打乱后的方块
+        self.selected_idx = None
         self.score = 0
         self.matched = 0
     
@@ -68,11 +69,11 @@ class GamePage:
         self.words = random.sample(words_with_meaning, count)
         self.score = 0
         self.matched = 0
-        self.selected = None
+        self.selected_idx = None
         
         self.score_text.value = "得分: 0"
         self.progress_text.value = f"配对: 0 / {count}"
-        self.status_text.value = "游戏开始! 点击方块匹配"
+        self.status_text.value = "游戏开始! 点击方块匹配英文和中文"
         self.status_text.color = "green"
         
         self.display_game()
@@ -80,80 +81,104 @@ class GamePage:
     def display_game(self):
         self.game_area.controls.clear()
         
-        # 创建所有方块
-        blocks = []
-        for w in self.words:
-            blocks.append({'text': w['word'], 'pair': w['id'], 'type': 'en', 'matched': False})
-            meaning = w['meaning'][:12] if len(w['meaning']) > 12 else w['meaning']
-            blocks.append({'text': meaning, 'pair': w['id'], 'type': 'cn', 'matched': False})
+        # 如果是首次显示，创建方块
+        if not self.blocks:
+            self.blocks = []
+            for w in self.words:
+                self.blocks.append({
+                    'text': w['word'],
+                    'pair_id': w['id'],
+                    'type': 'en',
+                    'matched': False
+                })
+                meaning = w['meaning']
+                if len(meaning) > 15:
+                    meaning = meaning[:15] + "..."
+                self.blocks.append({
+                    'text': meaning,
+                    'pair_id': w['id'],
+                    'type': 'cn',
+                    'matched': False
+                })
+            random.shuffle(self.blocks)
         
-        random.shuffle(blocks)
-        
+        # 创建显示
         rows = []
         row_controls = []
         
-        for i, b in enumerate(blocks):
+        for i, b in enumerate(self.blocks):
+            if b['matched']:
+                continue
+            
+            is_selected = (self.selected_idx == i)
+            bgcolor = "purple" if is_selected else ("blue" if b['type'] == 'en' else "green")
+            
             btn = ft.Container(
-                content=ft.Text(b['text'], size=11, text_align=ft.TextAlign.CENTER),
-                bgcolor="blue" if b['type'] == 'en' else "green",
+                content=ft.Text(b['text'], size=11, text_align=ft.TextAlign.CENTER, color="white"),
+                bgcolor=bgcolor,
                 border_radius=8,
                 padding=10,
                 width=100,
                 height=50,
-                visible=not b['matched'],
                 on_click=lambda e, idx=i: self.on_block_click(idx),
             )
-            b['button'] = btn
             row_controls.append(btn)
             
             if len(row_controls) >= 4:
-                rows.append(ft.Row(row_controls, alignment=ft.MainAxisAlignment.CENTER))
+                rows.append(ft.Row(row_controls, alignment=ft.MainAxisAlignment.CENTER, spacing=10))
                 row_controls = []
         
         if row_controls:
-            rows.append(ft.Row(row_controls, alignment=ft.MainAxisAlignment.CENTER))
+            while len(row_controls) < 4:
+                row_controls.append(ft.Container(width=100, height=50))
+            rows.append(ft.Row(row_controls, alignment=ft.MainAxisAlignment.CENTER, spacing=10))
         
+        self.game_area.controls.clear()
         for r in rows:
             self.game_area.controls.append(r)
         
         self.page.update()
     
     def on_block_click(self, idx):
-        # 找到点击的方块
-        blocks = []
-        for w in self.words:
-            blocks.append({'text': w['word'], 'pair': w['id'], 'type': 'en'})
-            blocks.append({'text': w['meaning'][:12], 'pair': w['id'], 'type': 'cn'})
+        if self.blocks[idx]['matched']:
+            return
         
-        if self.selected is None:
-            self.selected = idx
+        if self.selected_idx is None:
+            # 第一次选择
+            self.selected_idx = idx
+            self.display_game()
+        elif self.selected_idx == idx:
+            # 取消选择
+            self.selected_idx = None
+            self.display_game()
         else:
-            if idx != self.selected:
-                # 检查匹配
-                block1 = blocks[self.selected]
-                block2 = blocks[idx]
-                
-                if block1['pair'] == block2['pair'] and block1['type'] != block2['type']:
-                    # 匹配成功
-                    self.score += 10
-                    self.matched += 1
-                    self.status_text.value = "匹配正确! +10分"
-                    self.status_text.color = "green"
-                    
-                    # 更新显示
-                    self.display_game()
-                    
-                    if self.matched >= len(self.words):
-                        self.status_text.value = f"游戏完成! 得分: {self.score}"
-                        self.status_text.color = "purple"
-                else:
-                    self.score = max(0, self.score - 2)
-                    self.status_text.value = "匹配失败 -2分"
-                    self.status_text.color = "red"
-                
-                self.score_text.value = f"得分: {self.score}"
-                self.progress_text.value = f"配对: {self.matched} / {len(self.words)}"
+            # 第二次选择，检查匹配
+            block1 = self.blocks[self.selected_idx]
+            block2 = self.blocks[idx]
             
-            self.selected = None
-        
-        self.page.update()
+            # 匹配条件：pair_id相同 且 type不同
+            if block1['pair_id'] == block2['pair_id'] and block1['type'] != block2['type']:
+                # 匹配成功
+                block1['matched'] = True
+                block2['matched'] = True
+                self.score += 10
+                self.matched += 1
+                self.status_text.value = f"匹配正确! +10分"
+                self.status_text.color = "green"
+                
+                if self.matched >= len(self.words):
+                    self.status_text.value = f"恭喜完成! 得分: {self.score}"
+                    self.status_text.color = "purple"
+                    # 记录背诵次数
+                    word_ids = [w['id'] for w in self.words]
+                    db.increment_recitation_count(word_ids)
+            else:
+                # 匹配失败
+                self.score = max(0, self.score - 2)
+                self.status_text.value = f"匹配失败 -2分 (正确: {block1['text']} ↔ ?)"
+                self.status_text.color = "red"
+            
+            self.selected_idx = None
+            self.score_text.value = f"得分: {self.score}"
+            self.progress_text.value = f"配对: {self.matched} / {len(self.words)}"
+            self.display_game()

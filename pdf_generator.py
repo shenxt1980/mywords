@@ -1,14 +1,27 @@
 # -*- coding: utf-8 -*-
 """
 PDF生成模块 - 生成单词表的PDF文件
-使用 reportlab 库生成A4尺寸的PDF文件
 """
 
 import os
+import hashlib
 from datetime import datetime
 from typing import List, Dict
 
-# PDF库导入检查
+# 修复 Python 3.8 + reportlab 4.x 的 hashlib 兼容性问题
+_original_md5 = hashlib.md5
+def _fixed_md5(*args, **kwargs):
+    # 移除不兼容的参数
+    kwargs.pop('usedforsecurity', None)
+    return _original_md5(*args, **kwargs)
+hashlib.md5 = _fixed_md5
+
+_original_sha1 = hashlib.sha1
+def _fixed_sha1(*args, **kwargs):
+    kwargs.pop('usedforsecurity', None)
+    return _original_sha1(*args, **kwargs)
+hashlib.sha1 = _fixed_sha1
+
 PDF_AVAILABLE = False
 PDF_ERROR_MSG = ""
 
@@ -16,22 +29,24 @@ try:
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.enums import TA_LEFT, TA_CENTER
+    from reportlab.lib.enums import TA_CENTER
     from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
     from reportlab.lib import colors
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
     PDF_AVAILABLE = True
 except ImportError as e:
-    PDF_ERROR_MSG = f"reportlab未安装，请运行: pip install reportlab。错误: {e}"
+    PDF_ERROR_MSG = f"reportlab未安装: {e}"
+except Exception as e:
+    PDF_ERROR_MSG = f"reportlab加载失败: {e}"
 
 
 class PDFGenerator:
     """PDF生成器"""
     
     def __init__(self):
-        """初始化PDF生成器"""
         self.chinese_font_registered = False
+        self.font_name = 'Helvetica'
         self._register_chinese_font()
     
     def _register_chinese_font(self):
@@ -39,19 +54,10 @@ class PDFGenerator:
         if self.chinese_font_registered:
             return
         
-        # 尝试注册常见的中文字体
         font_paths = [
-            # Windows字体路径
             "C:/Windows/Fonts/simhei.ttf",
-            "C:/Windows/Fonts/simsun.ttc",
             "C:/Windows/Fonts/msyh.ttc",
-            "C:/Windows/Fonts/simkai.ttf",
-            # Linux字体路径
-            "/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf",
-            "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-            # macOS字体路径
-            "/System/Library/Fonts/PingFang.ttc",
-            "/Library/Fonts/Arial Unicode.ttf",
+            "C:/Windows/Fonts/simsun.ttc",
         ]
         
         for font_path in font_paths:
@@ -59,46 +65,29 @@ class PDFGenerator:
                 try:
                     pdfmetrics.registerFont(TTFont('ChineseFont', font_path))
                     self.chinese_font_registered = True
+                    self.font_name = 'ChineseFont'
                     print(f"成功注册中文字体: {font_path}")
                     return
                 except Exception as e:
-                    print(f"注册字体失败 {font_path}: {e}")
+                    print(f"字体注册失败: {e}")
                     continue
         
-        print("警告: 未找到中文字体，PDF中的中文可能无法正常显示")
+        print("警告: 未找到中文字体，使用默认字体")
     
     def is_available(self) -> tuple:
-        """
-        检查PDF生成功能是否可用
-        
-        返回:
-            tuple: (是否可用, 错误信息)
-        """
         if not PDF_AVAILABLE:
             return False, PDF_ERROR_MSG
         return True, ""
     
     def generate_vocabulary_pdf(self, words: List[Dict], output_path: str,
                                   title: str = "陌生单词表") -> tuple:
-        """
-        生成单词表PDF
-        
-        参数:
-            words: 单词列表，每个单词是包含word, meaning, phonetic等字段的字典
-            output_path: 输出文件路径
-            title: PDF标题
-        
-        返回:
-            tuple: (成功标志, 错误信息或成功信息)
-        """
         if not PDF_AVAILABLE:
             return False, PDF_ERROR_MSG
         
         if not words:
-            return False, "没有单词可以导出"
+            return False, "没有单词"
         
         try:
-            # 创建PDF文档
             doc = SimpleDocTemplate(
                 output_path,
                 pagesize=A4,
@@ -108,229 +97,87 @@ class PDFGenerator:
                 bottomMargin=20*mm
             )
             
-            # 获取样式
             styles = getSampleStyleSheet()
             
-            # 创建自定义样式
             title_style = ParagraphStyle(
-                'CustomTitle',
+                'Title',
                 parent=styles['Heading1'],
                 fontSize=18,
                 alignment=TA_CENTER,
                 spaceAfter=20,
-                fontName='ChineseFont' if self.chinese_font_registered else 'Helvetica'
-            )
-            
-            header_style = ParagraphStyle(
-                'CustomHeader',
-                parent=styles['Heading2'],
-                fontSize=12,
-                fontName='ChineseFont' if self.chinese_font_registered else 'Helvetica',
-                spaceAfter=10
+                fontName=self.font_name
             )
             
             normal_style = ParagraphStyle(
-                'CustomNormal',
+                'Normal',
                 parent=styles['Normal'],
-                fontSize=10.5,  # 五号字约10.5pt
-                fontName='ChineseFont' if self.chinese_font_registered else 'Helvetica',
+                fontSize=10,
+                fontName=self.font_name,
                 leading=14
             )
             
-            # 构建文档内容
             story = []
-            
-            # 添加标题
             story.append(Paragraph(title, title_style))
             
-            # 添加生成日期
-            date_str = datetime.now().strftime("%Y年%m月%d日 %H:%M")
-            story.append(Paragraph(f"生成时间: {date_str}", normal_style))
-            story.append(Paragraph(f"共 {len(words)} 个单词", normal_style))
+            date_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+            story.append(Paragraph(f"生成时间: {date_str}  共 {len(words)} 个单词", normal_style))
             story.append(Spacer(1, 10*mm))
             
-            # 创建表格数据
-            table_data = [['序号', '单词', '音标', '词性', '中文含义']]
+            # 表格数据
+            table_data = [['序号', '单词', '音标', '词性', '含义']]
             
-            for idx, word_info in enumerate(words, 1):
-                word = word_info.get('word', '')
-                phonetic = word_info.get('phonetic', '') or ''
-                part_of_speech = word_info.get('part_of_speech', '') or ''
-                meaning = word_info.get('meaning', '') or '（待补充）'
-                
-                # 处理含义过长的情况
-                if len(meaning) > 50:
-                    meaning = meaning[:47] + "..."
-                
+            for idx, w in enumerate(words, 1):
+                meaning = w.get('meaning') or ''
+                if len(meaning) > 35:
+                    meaning = meaning[:32] + "..."
                 table_data.append([
                     str(idx),
-                    word,
-                    phonetic,
-                    part_of_speech,
+                    w.get('word', ''),
+                    w.get('phonetic') or '',
+                    w.get('part_of_speech') or '',
                     meaning
                 ])
             
-            # 创建表格
-            # 列宽: 序号(15mm), 单词(35mm), 音标(35mm), 词性(20mm), 含义(剩余)
-            col_widths = [15*mm, 35*mm, 35*mm, 20*mm, 70*mm]
-            
+            col_widths = [15*mm, 35*mm, 30*mm, 15*mm, 85*mm]
             table = Table(table_data, colWidths=col_widths)
             
-            # 设置表格样式
-            table_style = TableStyle([
-                # 整体字体
-                ('FONTNAME', (0, 0), (-1, -1), 
-                 'ChineseFont' if self.chinese_font_registered else 'Helvetica'),
-                ('FONTSIZE', (0, 0), (-1, 0), 11),  # 表头字号
-                ('FONTSIZE', (0, 1), (-1, -1), 10.5),  # 数据字号（五号）
-                # 表头样式
+            table.setStyle(TableStyle([
+                ('FONTNAME', (0, 0), (-1, -1), self.font_name),
+                ('FONTSIZE', (0, 0), (-1, 0), 11),
+                ('FONTSIZE', (0, 1), (-1, -1), 10),
                 ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
                 ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 
-                 'ChineseFont' if self.chinese_font_registered else 'Helvetica-Bold'),
-                # 数据行样式
-                ('ALIGN', (0, 1), (0, -1), 'CENTER'),  # 序号居中
-                ('ALIGN', (1, 1), (1, -1), 'LEFT'),    # 单词左对齐
-                ('ALIGN', (2, 1), (-1, -1), 'LEFT'),   # 其他左对齐
+                ('ALIGN', (0, 1), (0, -1), 'CENTER'),
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                # 边框
                 ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ('BOX', (0, 0), (-1, -1), 1, colors.black),
-                # 行间距
-                ('TOPPADDING', (0, 0), (-1, -1), 3),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
-                # 隔行变色
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
                 ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.Color(0.95, 0.95, 0.95)]),
-            ])
+            ]))
             
-            table.setStyle(table_style)
-            
-            # 分页处理：每页最多30个单词
-            words_per_page = 30
-            total_pages = (len(words) + words_per_page - 1) // words_per_page
-            
-            if total_pages > 1:
-                # 需要分页
-                for page_num in range(total_pages):
-                    if page_num > 0:
+            # 分页
+            per_page = 30
+            if len(words) > per_page:
+                for i in range(0, len(table_data), per_page):
+                    if i > 0:
                         story.append(PageBreak())
-                        story.append(Paragraph(f"{title} (第{page_num+1}页)", header_style))
-                        story.append(Spacer(1, 5*mm))
-                    
-                    start_idx = page_num * words_per_page
-                    end_idx = min(start_idx + words_per_page + 1, len(table_data))
-                    
-                    page_table_data = table_data[start_idx:end_idx]
-                    if page_num > 0:
-                        # 非首页需要调整序号
-                        page_table_data = [['序号', '单词', '音标', '词性', '中文含义']]
-                        for idx, word_info in enumerate(words[start_idx:end_idx], start_idx + 1):
-                            word = word_info.get('word', '')
-                            phonetic = word_info.get('phonetic', '') or ''
-                            part_of_speech = word_info.get('part_of_speech', '') or ''
-                            meaning = word_info.get('meaning', '') or '（待补充）'
-                            if len(meaning) > 50:
-                                meaning = meaning[:47] + "..."
-                            page_table_data.append([str(idx), word, phonetic, part_of_speech, meaning])
-                    
-                    page_table = Table(page_table_data, colWidths=col_widths)
-                    page_table.setStyle(table_style)
-                    story.append(page_table)
+                    page_data = table_data[i:i+per_page]
+                    if i > 0:
+                        page_data = [['序号', '单词', '音标', '词性', '含义']] + page_data[1:]
+                    pt = Table(page_data, colWidths=col_widths)
+                    pt.setStyle(table.getStyle())
+                    story.append(pt)
             else:
                 story.append(table)
             
-            # 生成PDF
             doc.build(story)
             
-            return True, f"PDF已生成: {output_path}"
+            return True, f"PDF已保存: {output_path}"
             
         except Exception as e:
-            error_msg = f"PDF生成失败: {e}"
-            print(error_msg)
-            return False, error_msg
-    
-    def generate_flashcard_pdf(self, words: List[Dict], output_path: str) -> tuple:
-        """
-        生成单词卡片PDF（用于打印裁剪）
-        
-        参数:
-            words: 单词列表
-            output_path: 输出文件路径
-        
-        返回:
-            tuple: (成功标志, 错误信息或成功信息)
-        """
-        if not PDF_AVAILABLE:
-            return False, PDF_ERROR_MSG
-        
-        if not words:
-            return False, "没有单词可以导出"
-        
-        try:
-            doc = SimpleDocTemplate(
-                output_path,
-                pagesize=A4,
-                rightMargin=10*mm,
-                leftMargin=10*mm,
-                topMargin=10*mm,
-                bottomMargin=10*mm
-            )
-            
-            styles = getSampleStyleSheet()
-            
-            card_style = ParagraphStyle(
-                'CardStyle',
-                parent=styles['Normal'],
-                fontSize=14,
-                fontName='ChineseFont' if self.chinese_font_registered else 'Helvetica',
-                alignment=TA_CENTER,
-                leading=18
-            )
-            
-            story = []
-            
-            # 创建卡片表格：每行2个卡片
-            card_data = []
-            row = []
-            
-            for word_info in words:
-                word = word_info.get('word', '')
-                meaning = word_info.get('meaning', '') or ''
-                phonetic = word_info.get('phonetic', '') or ''
-                
-                card_content = f"<b>{word}</b><br/>{phonetic}<br/>{meaning}"
-                row.append(Paragraph(card_content, card_style))
-                
-                if len(row) == 2:
-                    card_data.append(row)
-                    row = []
-            
-            # 处理最后一行
-            if row:
-                row.append('')  # 补空
-                card_data.append(row)
-            
-            # 创建表格
-            table = Table(card_data, colWidths=[90*mm, 90*mm], rowHeights=[60*mm])
-            
-            table.setStyle(TableStyle([
-                ('FONTNAME', (0, 0), (-1, -1),
-                 'ChineseFont' if self.chinese_font_registered else 'Helvetica'),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('BOX', (0, 0), (-1, -1), 2, colors.black),
-            ]))
-            
-            story.append(table)
-            doc.build(story)
-            
-            return True, f"单词卡片PDF已生成: {output_path}"
-            
-        except Exception as e:
+            import traceback
+            traceback.print_exc()
             return False, f"PDF生成失败: {e}"
 
 
-# 创建全局PDF生成器实例
 pdf_generator = PDFGenerator()
