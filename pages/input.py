@@ -200,62 +200,45 @@ class InputPage:
         self.page.update()
         
         try:
-            # 使用PIL获取剪贴板图片
-            from PIL import ImageGrab, Image
+            import subprocess
             
-            try:
-                img = ImageGrab.grabclipboard()
-            except Exception:
-                # 尝试另一种方式
-                import subprocess
-                # 保存剪贴板图片到临时文件
-                temp_path = os.path.join(tempfile.gettempdir(), "clipboard_image.png")
-                
-                # 使用PowerShell获取剪贴板图片
-                ps_script = '''
-                Add-Type -AssemblyName System.Windows.Forms
-                Add-Type -AssemblyName System.Drawing
-                $img = [Windows.Forms.Clipboard]::GetImage()
-                if ($img -ne $null) {
-                    $img.Save("''' + temp_path.replace('\\', '\\\\') + '''", [System.Drawing.Imaging.ImageFormat]::Png)
-                    Write-Output "success"
-                } else {
-                    Write-Output "no_image"
-                }
-                '''
-                result = subprocess.run(['powershell', '-Command', ps_script], capture_output=True, text=True)
-                
-                if 'success' in result.stdout and os.path.exists(temp_path):
-                    self.process_image_file(temp_path)
-                    return
-                else:
-                    self.ocr_status.value = "剪贴板中没有图片，请先截图 (Win+Shift+S)"
-                    self.ocr_status.color = "orange"
-                    self.page.update()
-                    return
+            # 使用PowerShell获取剪贴板图片（Windows最可靠的方式）
+            temp_path = os.path.join(tempfile.gettempdir(), "vocab_clipboard.png")
             
-            if img is None:
-                self.ocr_status.value = "剪贴板中没有图片，请先截图 (Win+Shift+S)"
+            # 先删除旧文件
+            if os.path.exists(temp_path):
+                try:
+                    os.remove(temp_path)
+                except:
+                    pass
+            
+            ps_script = '''
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+$img = [Windows.Forms.Clipboard]::GetImage()
+if ($img -ne $null) {
+    $img.Save("''' + temp_path.replace('\\', '/') + '''", [System.Drawing.Imaging.ImageFormat]::Png)
+    Write-Output "success"
+} else {
+    Write-Output "no_image"
+}
+'''
+            result = subprocess.run(
+                ['powershell', '-Command', ps_script],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            
+            if 'success' in result.stdout and os.path.exists(temp_path):
+                self.process_image_file(temp_path)
+                return
+            else:
+                self.ocr_status.value = "剪贴板中没有图片。请先用 Win+Shift+S 截图"
                 self.ocr_status.color = "orange"
                 self.page.update()
                 return
-            
-            # 保存到临时文件
-            if isinstance(img, list):
-                # 某些系统返回文件列表
-                if len(img) > 0:
-                    self.process_image_file(img[0])
-                    return
-                else:
-                    self.ocr_status.value = "剪贴板中没有图片"
-                    self.ocr_status.color = "orange"
-                    self.page.update()
-                    return
-            
-            temp_path = os.path.join(tempfile.gettempdir(), "clipboard_temp.png")
-            img.save(temp_path, "PNG")
-            self.process_image_file(temp_path)
-            
+                
         except Exception as ex:
             self.ocr_status.value = f"读取剪贴板失败: {ex}"
             self.ocr_status.color = "red"
