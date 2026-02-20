@@ -162,7 +162,10 @@ if __name__ == "__main__":
         print("  提示: 确保手机和电脑在同一WiFi")
         print("=" * 50)
         
-        ft.app(target=App().main, view=ft.AppView.WEB_BROWSER, port=port)
+        # 设置环境变量让Flet监听所有网络接口
+        os.environ["FLET_SERVER_IP"] = "0.0.0.0"
+        
+        ft.app(target=App().main, view=ft.AppView.WEB_BROWSER, port=port, host="0.0.0.0")
     else:
         print("  启动桌面模式...")
         print("=" * 50)
