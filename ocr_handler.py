@@ -91,9 +91,26 @@ class OCRHandler:
             return False, f"图片文件不存在: {image_path}"
         
         try:
-            # 读取图片并识别
-            # detail=0 只返回文字，不返回坐标
-            results = self.reader.readtext(image_path, detail=0)
+            # 使用PIL和numpy读取图片，更可靠
+            from PIL import Image
+            import numpy as np
+            
+            # 打开图片
+            img = Image.open(image_path)
+            
+            # 转换为RGB模式（处理RGBA等格式）
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            
+            # 转换为numpy数组
+            img_array = np.array(img)
+            
+            # 检查图片是否有效
+            if img_array is None or img_array.size == 0:
+                return False, "图片读取失败，图片可能损坏"
+            
+            # 识别图片
+            results = self.reader.readtext(img_array, detail=0)
             
             if not results:
                 return True, ""  # 图片中没有检测到文字
