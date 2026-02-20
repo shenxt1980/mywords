@@ -44,11 +44,10 @@ class OCRHandler:
             return False
         
         try:
-            # 创建EasyOCR阅读器，支持中英文
+            # 创建EasyOCR阅读器，只识别英文（更稳定）
             # gpu=False 使用CPU模式，避免GPU相关问题
-            # download_enabled=True 允许自动下载模型
             self.reader = easyocr.Reader(
-                ['en', 'zh_sim'],
+                ['en'],
                 gpu=False,
                 download_enabled=True,
                 verbose=False
