@@ -40,12 +40,10 @@ class App:
     def main(self, page: ft.Page):
         self.page = page
         
-        # 页面设置
         page.title = "陌生单词收集与背诵"
         page.window.width = 900
         page.window.height = 700
         
-        # 导航
         def on_nav(e):
             index = e.control.selected_index
             pages = ["home", "input", "manage", "review", "game"]
@@ -147,8 +145,8 @@ if __name__ == "__main__":
     print("  陌生单词收集与背诵软件")
     print("=" * 50)
     
+    port = 8555
     if len(sys.argv) > 1 and sys.argv[1] == "--web":
-        port = 8555
         if len(sys.argv) > 2:
             try:
                 port = int(sys.argv[2])
@@ -159,13 +157,21 @@ if __name__ == "__main__":
         print(f"  电脑访问: http://localhost:{port}")
         print(f"  手机访问: http://{ip}:{port}")
         print("=" * 50)
-        print("  提示: 确保手机和电脑在同一WiFi")
+        
+        # 使用 flet 命令行方式启动web
+        import subprocess
+        import webbrowser
+        
+        # 设置环境变量
+        env = os.environ.copy()
+        env["FLET_SERVER_PORT"] = str(port)
+        env["FLET_SERVER_IP"] = "0.0.0.0"
+        
+        print("  正在启动Web服务器...")
+        print("  请稍候，浏览器会自动打开")
         print("=" * 50)
         
-        # 设置环境变量让Flet监听所有网络接口
-        os.environ["FLET_SERVER_IP"] = "0.0.0.0"
-        
-        ft.app(target=App().main, view=ft.AppView.WEB_BROWSER, port=port, host="0.0.0.0")
+        ft.app(target=App().main, view=ft.AppView.WEB_BROWSER, port=port)
     else:
         print("  启动桌面模式...")
         print("=" * 50)
