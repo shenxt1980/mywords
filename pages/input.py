@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 """
 单词采集页面 - 选词模式
-电脑端：选中文本后输入/粘贴到单词框
-图片端：OCR识别后点击单词选择
 """
 
 import os
 import re
+import tempfile
 import flet as ft
 
 import sys
@@ -27,7 +26,7 @@ class InputPage:
     
     def build(self):
         title = ft.Text("单词采集", size=24, weight=ft.FontWeight.BOLD)
-        desc = ft.Text("方式1: 选中文本中的单词 → 粘贴到输入框 → 添加 | 方式2: 上传图片 → 点击选择单词", 
+        desc = ft.Text("方式1: 选中文本 → 粘贴到输入框 → 添加 | 方式2: 截图后点击「粘贴截图」→ 点击选择单词", 
                        size=12, color="grey")
         
         # === 文本模式 ===
@@ -41,7 +40,6 @@ class InputPage:
             hint_text="在此粘贴阅读文章，然后选中想要的单词，复制到下方输入框...",
         )
         
-        # 单词输入框
         self.word_input = ft.TextField(
             label="输入或粘贴要收集的单词",
             hint_text="选中文本中的单词，复制粘贴到这里...",
@@ -59,19 +57,26 @@ class InputPage:
         img_title = ft.Text("图片选词 (OCR)", size=16, weight=ft.FontWeight.BOLD, color="orange")
         
         upload_btn = ft.ElevatedButton(
-            "上传图片识别",
+            "上传图片",
             on_click=self.on_upload_image,
             bgcolor="orange",
             color="white",
         )
         
+        paste_btn = ft.ElevatedButton(
+            "粘贴截图",
+            on_click=self.on_paste_clipboard,
+            bgcolor="teal",
+            color="white",
+        )
+        
         self.ocr_status = ft.Text("", size=12)
         
-        # OCR识别结果 - 显示原文和可选单词
+        # OCR识别结果
         self.ocr_text_display = ft.Container(
             content=ft.Column([
                 ft.Text("识别到的文本:", size=12, weight=ft.FontWeight.BOLD),
-                ft.Text("", size=11),  # 原文显示
+                ft.Text("", size=11),
             ]),
             padding=10,
             bgcolor="#f0f0f0",
@@ -97,7 +102,7 @@ class InputPage:
         self.word_list_display = ft.Column(scroll=ft.ScrollMode.AUTO, height=120)
         
         # 例句输入
-        example_label = ft.Text("例句（可选，保存单词所在的原文句子）:", size=12)
+        example_label = ft.Text("例句（可选）:", size=12)
         self.example_input = ft.TextField(
             hint_text="粘贴包含单词的原句，帮助记忆...",
             multiline=True,
@@ -107,7 +112,7 @@ class InputPage:
         
         # 按钮
         clear_btn = ft.OutlinedButton("清空", on_click=self.on_clear)
-        submit_btn = ft.ElevatedButton("提交单词", on_click=self.on_submit, bgcolor="purple", color="white")
+        submit_btn = ft.ElevatedButton("提交单词（自动查词典）", on_click=self.on_submit, bgcolor="purple", color="white")
         
         # 状态
         self.status_text = ft.Text("", size=14)
@@ -127,7 +132,7 @@ class InputPage:
             ft.Divider(),
             
             # 图片模式
-            ft.Row([img_title, upload_btn]),
+            ft.Row([img_title, upload_btn, paste_btn]),
             self.ocr_status,
             self.ocr_text_display,
             self.ocr_words_area,
@@ -152,7 +157,6 @@ class InputPage:
             self.page.update()
             return
         
-        # 提取英文单词
         words = re.findall(r"[a-zA-Z]+(?:[-'][a-zA-Z]+)*", text)
         if not words:
             self.status_text.value = "未识别到英文单词"
@@ -189,11 +193,76 @@ class InputPage:
             allow_multiple=False
         )
     
-    def on_file_result(self, e):
-        """处理图片"""
-        if not e.files:
-            return
+    def on_paste_clipboard(self, e):
+        """粘贴剪贴板图片"""
+        self.ocr_status.value = "正在读取剪贴板图片..."
+        self.ocr_status.color = "blue"
+        self.page.update()
         
+        try:
+            # 使用PIL获取剪贴板图片
+            from PIL import ImageGrab, Image
+            
+            try:
+                img = ImageGrab.grabclipboard()
+            except Exception:
+                # 尝试另一种方式
+                import subprocess
+                # 保存剪贴板图片到临时文件
+                temp_path = os.path.join(tempfile.gettempdir(), "clipboard_image.png")
+                
+                # 使用PowerShell获取剪贴板图片
+                ps_script = '''
+                Add-Type -AssemblyName System.Windows.Forms
+                Add-Type -AssemblyName System.Drawing
+                $img = [Windows.Forms.Clipboard]::GetImage()
+                if ($img -ne $null) {
+                    $img.Save("''' + temp_path.replace('\\', '\\\\') + '''", [System.Drawing.Imaging.ImageFormat]::Png)
+                    Write-Output "success"
+                } else {
+                    Write-Output "no_image"
+                }
+                '''
+                result = subprocess.run(['powershell', '-Command', ps_script], capture_output=True, text=True)
+                
+                if 'success' in result.stdout and os.path.exists(temp_path):
+                    self.process_image_file(temp_path)
+                    return
+                else:
+                    self.ocr_status.value = "剪贴板中没有图片，请先截图 (Win+Shift+S)"
+                    self.ocr_status.color = "orange"
+                    self.page.update()
+                    return
+            
+            if img is None:
+                self.ocr_status.value = "剪贴板中没有图片，请先截图 (Win+Shift+S)"
+                self.ocr_status.color = "orange"
+                self.page.update()
+                return
+            
+            # 保存到临时文件
+            if isinstance(img, list):
+                # 某些系统返回文件列表
+                if len(img) > 0:
+                    self.process_image_file(img[0])
+                    return
+                else:
+                    self.ocr_status.value = "剪贴板中没有图片"
+                    self.ocr_status.color = "orange"
+                    self.page.update()
+                    return
+            
+            temp_path = os.path.join(tempfile.gettempdir(), "clipboard_temp.png")
+            img.save(temp_path, "PNG")
+            self.process_image_file(temp_path)
+            
+        except Exception as ex:
+            self.ocr_status.value = f"读取剪贴板失败: {ex}"
+            self.ocr_status.color = "red"
+            self.page.update()
+    
+    def process_image_file(self, image_path):
+        """处理图片文件进行OCR"""
         self.ocr_status.value = "正在识别图片..."
         self.ocr_status.color = "blue"
         self.page.update()
@@ -208,16 +277,13 @@ class InputPage:
                 self.page.update()
                 return
             
-            success, result = ocr_handler.recognize_image(e.files[0].path)
+            success, result = ocr_handler.recognize_image(image_path)
             
             if success:
                 self.ocr_text = result
-                
-                # 显示原文
                 self.ocr_original_text.value = result[:500] + ("..." if len(result) > 500 else "")
                 self.ocr_text_display.visible = True
                 
-                # 提取单词并显示
                 self.ocr_words = self.extract_words(result)
                 self.ocr_selected.clear()
                 self.display_ocr_words()
@@ -235,8 +301,14 @@ class InputPage:
         
         self.page.update()
     
+    def on_file_result(self, e):
+        """处理上传的图片"""
+        if not e.files:
+            return
+        self.process_image_file(e.files[0].path)
+    
     def extract_words(self, text):
-        """提取单词，保持原文顺序"""
+        """提取单词"""
         pattern = r"[a-zA-Z]+(?:[-'][a-zA-Z]+)*"
         words = re.findall(pattern, text)
         seen = set()
@@ -249,7 +321,7 @@ class InputPage:
         return result
     
     def display_ocr_words(self):
-        """显示OCR单词chips"""
+        """显示OCR单词"""
         self.ocr_chips_container.controls.clear()
         
         for word in self.ocr_words:
@@ -267,12 +339,10 @@ class InputPage:
     def on_ocr_word_click(self, word):
         """点击OCR单词"""
         if word in self.ocr_selected:
-            # 取消选择
             self.ocr_selected.remove(word)
             if word in self.selected_words:
                 self.selected_words.remove(word)
         else:
-            # 选择
             self.ocr_selected.add(word)
             if word not in self.selected_words:
                 self.selected_words.append(word)
@@ -281,7 +351,7 @@ class InputPage:
         self.update_word_list()
     
     def update_word_list(self):
-        """更新单词列表显示"""
+        """更新单词列表"""
         self.word_list_display.controls.clear()
         
         for word in self.selected_words:
@@ -321,7 +391,7 @@ class InputPage:
         self.page.update()
     
     def on_submit(self, e):
-        """提交单词"""
+        """提交单词并自动查词典"""
         if not self.selected_words:
             self.status_text.value = "请先添加单词"
             self.status_text.color = "red"
@@ -329,18 +399,68 @@ class InputPage:
             return
         
         example = self.example_input.value.strip()
+        total = len(self.selected_words)
         
-        # 批量添加
-        new_count, update_count = db.batch_add_words(self.selected_words)
+        self.status_text.value = f"正在提交并查词典 (0/{total})..."
+        self.status_text.color = "blue"
+        self.page.update()
         
-        # 如果有例句，更新每个单词
+        new_count = 0
+        update_count = 0
+        dict_success = 0
+        
+        try:
+            from utils.dictionary import dictionary_api
+        except:
+            dictionary_api = None
+        
+        for i, word in enumerate(self.selected_words):
+            # 更新进度
+            self.status_text.value = f"正在处理 ({i+1}/{total}): {word}"
+            self.page.update()
+            
+            # 检查是否已存在
+            existing = db.get_word_by_text(word)
+            
+            if existing:
+                # 已存在，增加选择次数
+                db.update_word(existing['id'])
+                update_count += 1
+            else:
+                # 新单词，尝试查词典
+                meaning = ""
+                phonetic = ""
+                part_of_speech = ""
+                
+                if dictionary_api:
+                    try:
+                        result = dictionary_api.lookup_word(word)
+                        if result:
+                            meaning = result.get('meaning', '')
+                            phonetic = result.get('phonetic', '')
+                            part_of_speech = result.get('part_of_speech', '')
+                            dict_success += 1
+                    except:
+                        pass
+                
+                # 添加到数据库
+                db.add_word(
+                    word=word,
+                    meaning=meaning,
+                    phonetic=phonetic,
+                    part_of_speech=part_of_speech,
+                    example_sentence=example if i == 0 else ""  # 只给第一个单词设置例句
+                )
+                new_count += 1
+        
+        # 更新所有单词的例句（如果有）
         if example:
             for word in self.selected_words:
                 word_info = db.get_word_by_text(word)
-                if word_info:
+                if word_info and not word_info.get('example_sentence'):
                     db.update_word(word_info['id'], example_sentence=example)
         
-        self.status_text.value = f"成功! 新增 {new_count} 个，更新 {update_count} 个单词"
+        self.status_text.value = f"完成! 新增 {new_count} 个，更新 {update_count} 个，查词典成功 {dict_success} 个"
         self.status_text.color = "green"
         
         # 清空
