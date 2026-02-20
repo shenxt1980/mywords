@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-单词管理页面 - 查看编辑单词
+单词管理页面 - 查看编辑单词、导出PDF
 """
 
 import os
@@ -23,6 +23,7 @@ class ManagePage:
     def build(self):
         title = ft.Text("单词管理", size=24, weight=ft.FontWeight.BOLD)
         
+        # 排序和搜索
         self.sort_dropdown = ft.Dropdown(
             options=[
                 ft.dropdown.Option("alphabetical", "字典序"),
@@ -34,17 +35,24 @@ class ManagePage:
             width=120,
         )
         
-        refresh_btn = ft.ElevatedButton("刷新", on_click=self.on_refresh)
-        export_btn = ft.ElevatedButton("导出PDF", on_click=self.on_export, bgcolor="red", color="white")
-        
-        # 搜索框
         self.search_input = ft.TextField(
             label="搜索单词",
             on_submit=self.on_search,
             width=150,
         )
         
-        self.stats_text = ft.Text("", color="grey")
+        refresh_btn = ft.ElevatedButton("刷新", on_click=self.on_refresh)
+        
+        # 导出PDF按钮（更醒目）
+        export_btn = ft.ElevatedButton(
+            "导出PDF打印",
+            on_click=self.on_export,
+            bgcolor="red",
+            color="white",
+            icon=ft.icons.PICTURE_AS_PDF,
+        )
+        
+        self.stats_text = ft.Text("", color="grey", size=12)
         self.word_list = ft.Column(scroll=ft.ScrollMode.AUTO, expand=True)
         self.status_text = ft.Text("")
         
@@ -53,7 +61,9 @@ class ManagePage:
         return ft.Column([
             title,
             ft.Divider(),
-            ft.Row([self.sort_dropdown, self.search_input, refresh_btn, export_btn]),
+            ft.Row([self.sort_dropdown, self.search_input, refresh_btn]),
+            ft.Container(height=5),
+            ft.Row([export_btn]),  # 单独一行，更醒目
             self.stats_text,
             ft.Divider(),
             self.word_list,
@@ -69,49 +79,43 @@ class ManagePage:
         self.display_words()
         
         stats = db.get_statistics()
-        self.stats_text.value = f"共 {stats['total_words']} 个单词"
+        self.stats_text.value = f"共 {stats['total_words']} 个单词 | 选择{stats['total_selections']}次 | 打印{stats['total_prints']}次"
     
     def display_words(self):
         self.word_list.controls.clear()
         
         if not self.words:
-            self.word_list.controls.append(ft.Text("暂无单词", color="grey"))
+            self.word_list.controls.append(ft.Text("暂无单词，请先到「采集」页面添加", color="grey"))
             self.page.update()
             return
         
         for w in self.words:
-            # 单词卡片
             card = ft.Container(
                 content=ft.Column([
-                    # 单词行
                     ft.Row([
                         ft.Text(w['word'], size=16, weight=ft.FontWeight.BOLD, color="blue"),
                         ft.Text(w.get('phonetic') or '', color="grey", size=12, italic=True),
                         ft.Container(
-                            content=ft.Text(w.get('part_of_speech') or '', size=10),
+                            content=ft.Text(w.get('part_of_speech') or '', size=10, color="white"),
                             bgcolor="green",
                             border_radius=4,
-                            padding=ft.padding.only(left=4, right=4),
+                            padding=ft.padding.only(left=4, right=4, top=2, bottom=2),
                             visible=bool(w.get('part_of_speech')),
                         ),
                     ]),
-                    # 含义
-                    ft.Text(w.get('meaning') or '（待补充含义）', size=12, color="black"),
-                    # 例句
+                    ft.Text(w.get('meaning') or '（待补充含义）', size=12),
                     ft.Container(
                         content=ft.Column([
                             ft.Text("例句:", size=10, color="grey"),
-                            ft.Text(w.get('example_sentence') or '', size=11, color="black", italic=True),
+                            ft.Text(w.get('example_sentence') or '', size=11, italic=True),
                         ], visible=bool(w.get('example_sentence'))),
                         visible=bool(w.get('example_sentence')),
                     ),
-                    # 统计
                     ft.Row([
                         ft.Text(f"选中:{w.get('selection_count', 0)}", size=10, color="blue"),
                         ft.Text(f"打印:{w.get('print_count', 0)}", size=10, color="green"),
                         ft.Text(f"背诵:{w.get('recitation_count', 0)}", size=10, color="purple"),
                     ]),
-                    # 操作按钮
                     ft.Row([
                         ft.TextButton("编辑", on_click=lambda e, word=w: self.edit_word(word)),
                         ft.TextButton("查词典", on_click=lambda e, word=w: self.lookup_word(word)),
@@ -146,7 +150,6 @@ class ManagePage:
         """编辑单词"""
         word_id = word_info['id']
         
-        # 输入字段
         word_input = ft.TextField(label="单词", value=word_info.get('word', ''), width=200)
         meaning_input = ft.TextField(label="中文含义", value=word_info.get('meaning') or '', multiline=True, min_lines=2, max_lines=4)
         phonetic_input = ft.TextField(label="音标", value=word_info.get('phonetic') or '', width=150)
@@ -203,8 +206,7 @@ class ManagePage:
             from utils.dictionary import dictionary_api
             result = dictionary_api.lookup_word(word)
             
-            if result:
-                # 更新数据库
+            if result and result.get('meaning'):
                 db.update_word(
                     word_info['id'],
                     meaning=result.get('meaning', ''),
@@ -216,7 +218,7 @@ class ManagePage:
                 self.status_text.value = f"已更新 {word} 的信息"
                 self.status_text.color = "green"
             else:
-                self.status_text.value = f"未找到 {word} 的释义"
+                self.status_text.value = f"未找到 {word} 的释义，请手动编辑"
                 self.status_text.color = "orange"
                 
         except Exception as ex:
@@ -255,10 +257,14 @@ class ManagePage:
     def on_export(self, e):
         """导出PDF"""
         if not self.words:
-            self.status_text.value = "没有单词"
+            self.status_text.value = "没有单词可导出"
             self.status_text.color = "red"
             self.page.update()
             return
+        
+        self.status_text.value = "正在生成PDF..."
+        self.status_text.color = "blue"
+        self.page.update()
         
         try:
             from pdf_generator import pdf_generator
