@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-单词管理页面 - 查看编辑单词、导出PDF
+单词管理页面
 """
 
 import os
@@ -18,6 +18,7 @@ class ManagePage:
     def __init__(self, page: ft.Page, on_navigate=None):
         self.page = page
         self.words = []
+        self.selected_ids = set()  # 选中的单词ID
         self.sort_by = "alphabetical"
     
     def build(self):
@@ -42,14 +43,20 @@ class ManagePage:
         )
         
         refresh_btn = ft.ElevatedButton("刷新", on_click=self.on_refresh)
+        select_all_btn = ft.ElevatedButton("全选", on_click=self.on_select_all, bgcolor="blue", color="white")
         
-        # 导出PDF按钮（更醒目）
-        export_btn = ft.ElevatedButton(
-            "导出PDF打印",
-            on_click=self.on_export,
+        # 导出按钮
+        export_selected_btn = ft.ElevatedButton(
+            "导出选中PDF",
+            on_click=self.on_export_selected,
+            bgcolor="orange",
+            color="white",
+        )
+        export_all_btn = ft.ElevatedButton(
+            "导出全部PDF",
+            on_click=self.on_export_all,
             bgcolor="red",
             color="white",
-            icon=ft.icons.PICTURE_AS_PDF,
         )
         
         self.stats_text = ft.Text("", color="grey", size=12)
@@ -61,9 +68,8 @@ class ManagePage:
         return ft.Column([
             title,
             ft.Divider(),
-            ft.Row([self.sort_dropdown, self.search_input, refresh_btn]),
-            ft.Container(height=5),
-            ft.Row([export_btn]),  # 单独一行，更醒目
+            ft.Row([self.sort_dropdown, self.search_input, refresh_btn, select_all_btn]),
+            ft.Row([export_selected_btn, export_all_btn]),
             self.stats_text,
             ft.Divider(),
             self.word_list,
@@ -79,7 +85,7 @@ class ManagePage:
         self.display_words()
         
         stats = db.get_statistics()
-        self.stats_text.value = f"共 {stats['total_words']} 个单词 | 选择{stats['total_selections']}次 | 打印{stats['total_prints']}次"
+        self.stats_text.value = f"共 {stats['total_words']} 个单词 | 已选中 {len(self.selected_ids)} 个"
     
     def display_words(self):
         self.word_list.controls.clear()
@@ -90,25 +96,22 @@ class ManagePage:
             return
         
         for w in self.words:
+            word_id = w['id']
+            is_selected = word_id in self.selected_ids
+            
             card = ft.Container(
                 content=ft.Column([
                     ft.Row([
+                        ft.Checkbox(
+                            value=is_selected,
+                            on_change=lambda e, wid=word_id: self.on_checkbox_change(e, wid),
+                        ),
                         ft.Text(w['word'], size=16, weight=ft.FontWeight.BOLD, color="blue"),
                         ft.Text(w.get('phonetic') or '', color="grey", size=12, italic=True),
-                        ft.Container(
-                            content=ft.Text(w.get('part_of_speech') or '', size=10, color="white"),
-                            bgcolor="green",
-                            border_radius=4,
-                            padding=ft.padding.only(left=4, right=4, top=2, bottom=2),
-                            visible=bool(w.get('part_of_speech')),
-                        ),
                     ]),
                     ft.Text(w.get('meaning') or '（待补充含义）', size=12),
                     ft.Container(
-                        content=ft.Column([
-                            ft.Text("例句:", size=10, color="grey"),
-                            ft.Text(w.get('example_sentence') or '', size=11, italic=True),
-                        ], visible=bool(w.get('example_sentence'))),
+                        content=ft.Text("例句: " + (w.get('example_sentence') or ''), size=11, italic=True),
                         visible=bool(w.get('example_sentence')),
                     ),
                     ft.Row([
@@ -119,17 +122,31 @@ class ManagePage:
                     ft.Row([
                         ft.TextButton("编辑", on_click=lambda e, word=w: self.edit_word(word)),
                         ft.TextButton("查词典", on_click=lambda e, word=w: self.lookup_word(word)),
-                        ft.TextButton("删除", on_click=lambda e, wid=w['id']: self.delete_word(wid)),
+                        ft.TextButton("删除", on_click=lambda e, wid=word_id: self.delete_word(wid)),
                     ]),
                 ]),
                 padding=10,
-                border=ft.border.all(1, "grey"),
+                border=ft.border.all(2, "purple" if is_selected else "grey"),
                 border_radius=8,
                 margin=ft.margin.only(bottom=5),
+                bgcolor="lavender" if is_selected else None,
             )
             self.word_list.controls.append(card)
         
         self.page.update()
+    
+    def on_checkbox_change(self, e, word_id):
+        if e.control.value:
+            self.selected_ids.add(word_id)
+        else:
+            self.selected_ids.discard(word_id)
+        self.stats_text.value = f"共 {len(self.words)} 个单词 | 已选中 {len(self.selected_ids)} 个"
+        self.display_words()
+    
+    def on_select_all(self, e):
+        self.selected_ids = {w['id'] for w in self.words}
+        self.stats_text.value = f"共 {len(self.words)} 个单词 | 已选中 {len(self.selected_ids)} 个"
+        self.display_words()
     
     def on_sort_change(self, e):
         self.sort_by = e.control.value
@@ -141,13 +158,13 @@ class ManagePage:
     
     def on_refresh(self, e):
         self.search_input.value = ""
+        self.selected_ids.clear()
         self.load_words()
         self.status_text.value = "已刷新"
         self.status_text.color = "green"
         self.page.update()
     
     def edit_word(self, word_info):
-        """编辑单词"""
         word_id = word_info['id']
         
         word_input = ft.TextField(label="单词", value=word_info.get('word', ''), width=200)
@@ -165,17 +182,17 @@ class ManagePage:
                 part_of_speech=pos_input.value,
                 example_sentence=example_input.value,
             )
-            dialog.open = False
+            self.page.dialog.open = False
             self.load_words(self.search_input.value.strip())
             self.status_text.value = "已保存"
             self.status_text.color = "green"
             self.page.update()
         
         def on_cancel(e):
-            dialog.open = False
+            self.page.dialog.open = False
             self.page.update()
         
-        dialog = ft.AlertDialog(
+        self.page.dialog = ft.AlertDialog(
             title=ft.Text("编辑单词"),
             content=ft.Column([
                 word_input,
@@ -187,17 +204,12 @@ class ManagePage:
                 ft.TextButton("取消", on_click=on_cancel),
                 ft.ElevatedButton("保存", on_click=on_save, bgcolor="blue", color="white"),
             ],
-            actions_alignment=ft.MainAxisAlignment.END,
         )
-        
-        self.page.dialog = dialog
-        dialog.open = True
+        self.page.dialog.open = True
         self.page.update()
     
     def lookup_word(self, word_info):
-        """查词典"""
         word = word_info.get('word', '')
-        
         self.status_text.value = f"正在查询 {word}..."
         self.status_text.color = "blue"
         self.page.update()
@@ -215,12 +227,11 @@ class ManagePage:
                     example_sentence=result.get('example', ''),
                 )
                 self.load_words(self.search_input.value.strip())
-                self.status_text.value = f"已更新 {word} 的信息"
+                self.status_text.value = f"已更新 {word}"
                 self.status_text.color = "green"
             else:
-                self.status_text.value = f"未找到 {word} 的释义，请手动编辑"
+                self.status_text.value = f"未找到 {word} 的释义"
                 self.status_text.color = "orange"
-                
         except Exception as ex:
             self.status_text.value = f"查询失败: {ex}"
             self.status_text.color = "red"
@@ -228,20 +239,20 @@ class ManagePage:
         self.page.update()
     
     def delete_word(self, word_id):
-        """删除单词"""
         def on_confirm(e):
             db.delete_word(word_id)
-            dialog.open = False
+            self.selected_ids.discard(word_id)
+            self.page.dialog.open = False
             self.load_words(self.search_input.value.strip())
             self.status_text.value = "已删除"
             self.status_text.color = "green"
             self.page.update()
         
         def on_cancel(e):
-            dialog.open = False
+            self.page.dialog.open = False
             self.page.update()
         
-        dialog = ft.AlertDialog(
+        self.page.dialog = ft.AlertDialog(
             title=ft.Text("确认删除"),
             content=ft.Text("确定要删除这个单词吗？"),
             actions=[
@@ -249,20 +260,33 @@ class ManagePage:
                 ft.ElevatedButton("删除", on_click=on_confirm, bgcolor="red", color="white"),
             ],
         )
-        
-        self.page.dialog = dialog
-        dialog.open = True
+        self.page.dialog.open = True
         self.page.update()
     
-    def on_export(self, e):
-        """导出PDF"""
+    def on_export_selected(self, e):
+        """导出选中的单词"""
+        if not self.selected_ids:
+            self.status_text.value = "请先勾选要导出的单词"
+            self.status_text.color = "orange"
+            self.page.update()
+            return
+        
+        words_to_export = [w for w in self.words if w['id'] in self.selected_ids]
+        self._do_export(words_to_export, "选中的单词")
+    
+    def on_export_all(self, e):
+        """导出全部单词"""
         if not self.words:
             self.status_text.value = "没有单词可导出"
             self.status_text.color = "red"
             self.page.update()
             return
         
-        self.status_text.value = "正在生成PDF..."
+        self._do_export(self.words, "全部单词")
+    
+    def _do_export(self, words, label):
+        """执行导出"""
+        self.status_text.value = f"正在生成PDF ({len(words)}个单词)..."
         self.status_text.color = "blue"
         self.page.update()
         
@@ -273,10 +297,11 @@ class ManagePage:
             os.makedirs(output_dir, exist_ok=True)
             output_path = os.path.join(output_dir, "vocabulary.pdf")
             
-            success, msg = pdf_generator.generate_vocabulary_pdf(self.words, output_path)
+            success, msg = pdf_generator.generate_vocabulary_pdf(words, output_path)
             
             if success:
-                word_ids = [w['id'] for w in self.words]
+                # 只更新这次导出的单词的打印次数
+                word_ids = [w['id'] for w in words]
                 db.increment_print_count(word_ids)
                 self.status_text.value = f"PDF已保存: {output_path}"
                 self.status_text.color = "green"
@@ -285,6 +310,8 @@ class ManagePage:
                 self.status_text.value = msg
                 self.status_text.color = "red"
         except Exception as ex:
+            import traceback
+            traceback.print_exc()
             self.status_text.value = f"导出失败: {ex}"
             self.status_text.color = "red"
         
